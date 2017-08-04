@@ -1,0 +1,24 @@
+import {glacier} from '../';
+import {Vault} from '../../../contracts/entities';
+
+export default function describeVault(vaultName) {
+
+  return new Promise((resolve, reject) => {
+
+    glacier.describeVault({vaultName}, (error, data) => {
+      if(error) return reject(error);
+
+      const vault = new Vault({
+        arn: data.VaultARN,
+        name: data.VaultName,
+        createdAt: data.CreationDate,
+        sizeInBytes: data.SizeInBytes,
+        numberOfArchives: data.NumberOfArchives,
+        lastInventoryDate: data.LastInventoryDate,
+      });
+
+      resolve(vault);
+    });
+
+  });
+}

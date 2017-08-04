@@ -1,0 +1,2 @@
+export const BYTES_IN_KILOBYTE = 1024;
+export const BYTES_IN_MEGABYTE = 1024 * BYTES_IN_KILOBYTE;

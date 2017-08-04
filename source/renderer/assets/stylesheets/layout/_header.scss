@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------------
+// This file contains all styles related to the header of the site/application.
+// -----------------------------------------------------------------------------
+
+header {
+  position: absolute;
+  min-width: 30em;
+}
+
+.logo {
+  width: 3rem;
+  height: auto;
+}
+
+.top-nav {
+  padding-top: 4rem;
+
+  .nav-link:not(.active) {
+    color: $navbar-light-color;
+
+    @include hover-focus {
+      color: $navbar-light-hover-color;
+    }
+  }
+}

@@ -1,0 +1,68 @@
+// -----------------------------------------------------------------------------
+// This file contains all styles related to the form and inputs components.
+// -----------------------------------------------------------------------------
+
+
+.form {
+    &-md {
+      max-width: map-get($container-max-widths, md);
+    }
+
+    &-sm {
+      max-width: map-get($container-max-widths, sm);
+    }
+
+    &-xs {
+      max-width: (map-get($container-max-widths, sm) / 3 * 2);
+    }
+}
+
+.custom-file-control {
+  &:not(:empty) {
+    &:after {
+      content: "";
+    }
+  }
+}
+
+.file-uploader {
+  position: relative;
+  border-width: medium;
+  border-style: dashed;
+
+  &.active {
+    border-color: $gray-light;
+  }
+
+  &.over {
+    .file-uploader-container {
+      z-index: 100;
+    }
+  }
+}
+
+.file-uploader-container {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  position: absolute;
+  z-index: -1;
+}
+
+.file-uploader-select {
+  cursor: pointer;
+}
+
+.file-uploader-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  max-width: 0;
+  max-height: 0;
+  z-index: -1;
+}
+
+.file-uploader-file {
+  position: relative;
+}

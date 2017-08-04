@@ -1,0 +1,80 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "extends": "eslint:recommended",
+  "parser": "babel-eslint",
+  "parserOptions": {
+     "sourceType": "module"
+   },
+  "plugins": [
+    "react",
+    "flowtype",
+    "import",
+    "promise",
+    "jsx-a11y",
+    "babel"
+  ],
+  "settings": {
+     "import/extensions": [".js", ".jsx"],
+     "import/resolver": {
+       "node": {
+         "extensions": [".js", ".jsx", ".json"]
+       }
+     }
+   },
+  "rules": {
+    "array-bracket-spacing": ["warn", "never"],
+    "arrow-parens": ["error", "as-needed", {"requireForBlockBody": true}],
+    "comma-spacing": ["warn", {"before": false, "after": true}],
+    "computed-property-spacing": ["warn", "never"],
+    "comma-dangle": ["error", "always-multiline"],
+    "eqeqeq": ["error", "allow-null"],
+    "indent": ["error", 2, {"SwitchCase": 1}],
+    "jsx-quotes": ["warn", "prefer-double"],
+    "key-spacing": ["warn", {"beforeColon": false, "afterColon": true}],
+    "linebreak-style": ["error", "unix"],
+    "max-len": ["warn", 80, 2, {
+      "ignorePattern": "^\\s*import\\s.+from\\s+/",
+      "ignoreUrls": true
+    }],
+    "no-case-declarations": "off",
+    "no-console": "warn",
+    "no-debugger": "warn",
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-unused-vars": ["warn", {"args": "none"}],
+    "quotes": ["error", "single", "avoid-escape"],
+    "react/jsx-uses-react": "error",
+    "react/jsx-uses-vars": "error",
+    "react/react-in-jsx-scope": "error",
+    "react/jsx-closing-bracket-location": ["warn", {
+      "nonEmpty": "after-props",
+      "selfClosing": "tag-aligned"
+    }],
+    "react/jsx-no-undef": "error",
+    "react/jsx-key": "warn",
+    "react/no-direct-mutation-state": "error",
+    "semi": ["warn", "always"],
+    "space-before-function-paren": ["warn", "never"],
+    "space-in-parens": ["warn", "never"],
+    "import/default": "warn",
+    "import/export": "warn",
+    "import/named": "warn",
+    "import/namespace": ["error", {"allowComputed": true}],
+    "import/no-amd": "warn",
+    "import/no-duplicates": "warn",
+    "import/no-extraneous-dependencies": "warn",
+    "import/no-named-as-default": "warn",
+    "import/no-named-as-default-member": "warn",
+    "import/no-unresolved": ["warn", { "commonjs": true }],
+    "flowtype/define-flow-type": "warn",
+    "flowtype/require-valid-file-annotation": "warn",
+    "flowtype/use-flow-type": "warn",
+    "babel/new-cap": "warn",
+    "babel/object-curly-spacing": "warn",
+    "babel/no-invalid-this": "warn"
+  }
+}

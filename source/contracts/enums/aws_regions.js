@@ -1,0 +1,12 @@
+export const US_EAST_OHIO = 'us-east-2';
+export const US_EAST_NVIRGINIA = 'us-east-1';
+export const US_WEST_NCALIFORNIA = 'us-west-1';
+export const US_WEST_OREGON = 'us-west-2';
+export const CANADA_CENTRAL = 'ca-central-1';
+export const ASIA_PACIFIC_MUMBAI = 'ap-south-1';
+export const ASIA_PACIFIC_SEOUL = 'ap-northeast-2';
+export const ASIA_PACIFIC_SYDNEY = 'ap-southeast-2';
+export const ASIA_PACIFIC_TOKYO = 'ap-northeast-1';
+export const EU_FRANKFURT = 'eu-central-1';
+export const EU_IRELAND = 'eu-west-1';
+export const EU_LONDON = 'eu-west-2';

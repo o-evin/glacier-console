@@ -1,0 +1,94 @@
+// -----------------------------------------------------------------------------
+// This file contains all styles related to the main content of the site/application.
+// -----------------------------------------------------------------------------
+
+.vertical-center {
+  top: 50%;
+  min-width: 30em;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.public-background {
+  min-width: 150%;
+  height: auto;
+  z-index: -1;
+}
+
+.app-loading {
+  top: 50%;
+  left: 50%;
+  position: absolute;
+  transition: translate(-50%, -50%);
+}
+
+.list-progress {
+
+  .content {
+    position: relative;
+  }
+
+  .description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .actions {
+    white-space: nowrap;
+  }
+
+  .list-group-item {
+    min-height: 3rem;
+  }
+
+  .progress-bar {
+    top: 0;
+    left: 0;
+    position: absolute;
+  }
+
+}
+
+.vaults-list {
+  overflow: auto;
+  min-height: 5rem;
+  max-height: calc(100vh - 16rem);
+}
+
+.inventory-list {
+  overflow: auto;
+  min-height: 5rem;
+  padding-bottom: 5rem;
+  height: calc(100vh - 23rem);
+}
+
+.operations-list {
+  overflow: auto;
+  min-height: 5rem;
+  max-height: calc(100vh - 13rem);
+}
+
+.table.scrollable {
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+
+  tbody {
+    width: 100%;
+    overflow-y: auto;
+  }
+
+  thead, tbody {
+    display: block;
+  }
+
+  tr {
+    display: flex;
+  }
+
+  th {
+    flex: 1;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+}

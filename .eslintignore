@@ -1,0 +1,6 @@
+# Ignore built files
+bin
+build
+
+# Ignore cache files
+.cache
