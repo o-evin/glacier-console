@@ -15,31 +15,42 @@ AWS Glacier Console is a fast cross-platform Client for Amazon Glacier.
 
 ## Latest Releases
 
-  [OS X (x64)](../master/bin/glacier-darwin-x64.zip)  
-  [Windows (x64)](../master/bin/glacier-win32-x64.zip)  
-  [Linux (x64)](../master/bin/glacier-linux-x64.zip)  
+  [OS X (x64)](../master/bin/glacier-darwin-x64.zip?raw=true)  
+  [Windows (x64)](../master/bin/glacier-win32-x64.zip?raw=true)  
+  [Linux (x64)](../master/bin/glacier-linux-x64.zip?raw=true)  
 
 ## Installing
+  ```
   $ git clone git://github.com/o-evin/glacier.git
   $ cd ./glacier
   $ npm install
+  ```
 
 ## Run from the source code
   Install the project first and then run:
+  ```
   $ npm start
+  ```
 
 ## Building
+  ```
   $ npm run build
+  ```
 
 ## Packaging
+  ```
   $ npm run pack
+  ```
   After successful project Compilation and Packaging you should be able to find the apps under /bin folder.
+
 ### Packaging Windows app from non-Windows platforms
   On non-Windows host platforms, Wine 1.6 or later needs to be installed. On OS X, it is installable via [Homebrew](http://brew.sh/).
 
 ## Debugging
 You can enable debugging output by setting the `DEBUG` environment variable:
+  ```
   $ DEBUG=uploader,receiver npm start
+  ```
 
 
 ## Authors
