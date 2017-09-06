@@ -2,7 +2,7 @@
 
 AWS Glacier Console is a fast cross-platform Client for Amazon Glacier.
 
-![Screenshot](../blob/master/screenshot.png)
+![Screenshot](../master/screenshot.png)
 
 ## Features
 
@@ -15,9 +15,9 @@ AWS Glacier Console is a fast cross-platform Client for Amazon Glacier.
 
 ## Latest Releases
 
-  [OS X (x64)](../blob/master/bin/glacier-darwin-x64.zip)
-  [Windows (x64)](../blob/master/bin/glacier-win32-x64.zip)
-  [Linux (x64)](../blob/master/bin/glacier-linux-x64.zip)
+  [OS X (x64)](../master/bin/glacier-darwin-x64.zip)  
+  [Windows (x64)](../master/bin/glacier-win32-x64.zip)  
+  [Linux (x64)](../master/bin/glacier-linux-x64.zip)  
 
 ## Installing
   $ git clone git://github.com/o-evin/glacier.git
