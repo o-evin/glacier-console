@@ -26,7 +26,18 @@ export default function removeVault(vault, navigateOnSuccess) {
       })
       .catch((error) => {
         dispatch({type: VAULT_DELETE_FAILURE});
-        alert(error.message || error.toString());
+        let message = error.toString();
+
+        if(message.indexOf('Vault not empty or recently written to') >= 0) {
+          message = 'Amazon Glacier deletes a vault only if there are no ' +
+            'archives in the vault as of the last inventory it computed and ' +
+            'there have been no writes to the vault since the last ' +
+            'inventory. \n\n' +
+            'Please ensure there are no archives in the vault and wait for ' +
+            'the next inventory before delete the vault.';
+        }
+
+        alert(message);
       });
 
   };

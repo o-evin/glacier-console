@@ -133,9 +133,15 @@ class ViewVaultContainer extends PureComponent {
   }
 
   showRetrievals(retrievals) {
-    retrievals.forEach(
-      item => shell.openItem(path.dirname(item.filePath))
+
+    const paths = retrievals.map(
+      item => path.dirname(item.filePath)
+    ).filter(
+      (path, index, array) => array.indexOf(path) === index
     );
+
+    paths.forEach(shell.openItem);
+
     return Promise.all(
       retrievals.map(this.props.removeRetrieval)
     );
@@ -145,9 +151,33 @@ class ViewVaultContainer extends PureComponent {
     const {prefix, vaultName} = this.props;
 
     return entries.filter(
-      (item, idx) => item.vaultName === vaultName &&
+      item => item.vaultName === vaultName &&
         (!prefix || item.description.startsWith(prefix + '/'))
     );
+  }
+
+  removeVault() {
+    const {vault} = this.props;
+
+    const archives = this.props.archives.filter(
+      item => item.vaultName === vault.name
+    );
+
+    const uploads = this.props.uploads.filter(
+      item => item.vaultName === vault.name
+    );
+
+    const retrievals = this.props.retrievals.filter(
+      item => item.vaultName === vault.name
+    );
+
+    return Promise.all([
+      archives.map(this.props.removeArchive),
+      uploads.map(this.props.removeUpload),
+      retrievals.map(this.props.removeRetrieval),
+    ]).then(() => {
+      return this.props.removeVault(vault, '/vaults/');
+    });
   }
 
   render() {
@@ -178,7 +208,7 @@ class ViewVaultContainer extends PureComponent {
           retrievals={retrievals}
           inventory={inventory}
           inventoryRetrieval={inventoryRetrieval}
-          onRemove={this.props.removeVault.bind(null, vault, '/vaults/')}
+          onRemove={this.removeVault.bind(this)}
           onRetrieve={this.retrieveLocation.bind(this)}
           onRestartUpload={this.props.restartUpload}
           onRemoveUpload={this.props.removeUpload}
