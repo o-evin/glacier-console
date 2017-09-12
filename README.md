@@ -21,8 +21,8 @@ AWS Glacier Console is a fast cross-platform Client for Amazon Glacier.
 
 ## Installing
   ```
-  $ git clone git://github.com/o-evin/glacier.git
-  $ cd ./glacier
+  $ git clone git://github.com/o-evin/glacier-console.git
+  $ cd ./glacier-console
   $ npm install
   ```
 
@@ -57,7 +57,7 @@ You can enable debugging output by setting the `DEBUG` environment variable:
 
 * **Oleksiy Evin** - *Initial work* - [o-evin](https://github.com/o-evin)
 
-See also the list of [contributors](https://github.com/o-evin/glacier/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/o-evin/glacier-console/contributors) who participated in this project.
 
 ## License
 

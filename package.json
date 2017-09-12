@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/o-evin/glacier.git"
+    "url": "git+https://github.com/o-evin/glacier-console.git"
   },
   "keywords": [
     "AWS",
@@ -27,9 +27,9 @@
   "author": "Oleksiy Evin",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/o-evin/glacier/issues"
+    "url": "https://github.com/o-evin/glacier-console/issues"
   },
-  "homepage": "https://github.com/o-evin/glacier#readme",
+  "homepage": "https://github.com/o-evin/glacier-console#readme",
   "dependencies": {
     "aws-sdk": "^2.98.0",
     "bytes": "^2.5.0",
