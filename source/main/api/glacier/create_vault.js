@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 
 import {Vault} from '../../../contracts/entities';
 
@@ -10,7 +10,7 @@ export default function createVault({name}) {
       vaultName: name,
     };
 
-    glacier.createVault(params, (error, data) => {
+    aws.createVault(params, (error, data) => {
 
       if(error) return reject(error);
 

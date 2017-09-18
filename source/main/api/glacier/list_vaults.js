@@ -1,4 +1,5 @@
-import {glacier} from '../';
+import aws from './aws';
+
 import {Vault} from '../../../contracts/entities';
 
 export default function listVaults(marker, vaults = []) {
@@ -9,7 +10,7 @@ export default function listVaults(marker, vaults = []) {
       marker,
     };
 
-    glacier.listVaults(params, (error, data) => {
+    aws.listVaults(params, (error, data) => {
 
       if(error) return reject(error);
 

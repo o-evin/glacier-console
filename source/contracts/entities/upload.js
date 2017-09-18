@@ -62,7 +62,7 @@ export default class Upload extends Validator {
 
   }
 
-  get parts() {
+  getParts() {
     const parts = [];
 
     for (let pos = 0; pos < this.archiveSize; pos += this.partSize) {

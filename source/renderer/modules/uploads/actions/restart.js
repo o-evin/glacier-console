@@ -12,9 +12,9 @@ export default function restartUpload(upload) {
 
     dispatch({type: UPLOAD_RESTART_REQUEST});
 
-    const {uploader} = remote.getGlobal('queuer');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return uploader.restartUpload(upload)
+    return jobExecutor.restartUpload(upload)
       .then((upload) => {
         dispatch({type: UPLOAD_RESTART_SUCCESS, payload: upload});
       })

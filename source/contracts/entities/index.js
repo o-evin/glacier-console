@@ -5,3 +5,5 @@ export Archive from './archive';
 export Retrieval from './retrieval';
 export Vault from './vault';
 export Inventory from './inventory';
+export QueueJob from './queue_job';
+export WaiterJob from './waiter_job';

@@ -6,7 +6,7 @@ const actions = {
   remove: ActionType.UPLOAD_DELETE_SUCCESS,
   list: ActionType.UPLOAD_LIST_SUCCESS,
   updatePart: ActionType.UPLOAD_PART_UPDATE_SUCCESS,
-  getParts: ActionType.UPLOAD_PART_LIST_SUCCESS,
+  listParts: ActionType.UPLOAD_PART_LIST_SUCCESS,
 };
 
 import Dispatcher from './dispatcher';
@@ -49,7 +49,7 @@ export default class UploadeStore extends Dispatcher {
     return this.findParts({parentId: value.id})
       .then((parts) => {
         return Promise.all(parts.map(
-          item => this.removePart(item.id)
+          item => this.removePart(item)
         ));
       })
       .then(() => {
@@ -96,7 +96,7 @@ export default class UploadeStore extends Dispatcher {
       .then(data => data && new Part(data));
   }
 
-  getParts() {
+  listParts() {
     return this.indexed.list('UploadParts')
       .then(data => data.map(item => new Part(item)));
   }
@@ -108,8 +108,8 @@ export default class UploadeStore extends Dispatcher {
       .then(data => data.map(item => new Part(item)));
   }
 
-  removePart(id) {
-    return this.indexed.remove('UploadParts', id);
+  removePart(value) {
+    return this.indexed.remove('UploadParts', value.id);
   }
 
 }

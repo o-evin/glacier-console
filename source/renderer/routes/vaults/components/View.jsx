@@ -47,7 +47,8 @@ export default class ViewVault extends PureComponent {
     onShowRetrievals: PropTypes.func.isRequired,
     onUploadFiles: PropTypes.func.isRequired,
     onUploadDirectory: PropTypes.func.isRequired,
-    onRefreshInventory: PropTypes.func.isRequired,
+    onRequestInventory: PropTypes.func.isRequired,
+    onCancelInventory: PropTypes.func.isRequired,
   }
 
   removeVault() {
@@ -276,12 +277,12 @@ export default class ViewVault extends PureComponent {
             {vault.lastInventoryDate ?
               (inventoryRetrieval ?
                 <button className="btn btn-link dropdown-item" onClick={
-                  this.props.onRemoveRetrieval.bind(null, inventoryRetrieval)}>
+                  this.props.onCancelInventory.bind(null, inventoryRetrieval)}>
                   <i className="fa fa-refresh fa-spin mr-2" />
                   Stop processing
                 </button> :
                 <button className="btn btn-link dropdown-item"
-                  onClick={this.props.onRefreshInventory}>
+                  onClick={this.props.onRequestInventory}>
                   Synchronize
                 </button>
               ) :

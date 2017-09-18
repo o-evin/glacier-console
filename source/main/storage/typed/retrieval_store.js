@@ -1,4 +1,4 @@
-import {RetrievalAction, ActionType} from '../../../contracts/enums';
+import {ActionType} from '../../../contracts/enums';
 import {Retrieval, Part} from '../../../contracts/entities';
 
 const actions = {
@@ -7,7 +7,7 @@ const actions = {
   remove: ActionType.RETRIEVAL_DELETE_SUCCESS,
   list: ActionType.RETRIEVAL_LIST_SUCCESS,
   updatePart: ActionType.RETRIEVAL_PART_UPDATE_SUCCESS,
-  getParts: ActionType.RETRIEVAL_PART_LIST_SUCCESS,
+  listParts: ActionType.RETRIEVAL_PART_LIST_SUCCESS,
 };
 
 import Dispatcher from './dispatcher';
@@ -47,13 +47,10 @@ export default class RetrievalStore extends Dispatcher {
   }
 
   remove(value) {
-    if(value.action === RetrievalAction.INVENTORY) {
-      return this.indexed.remove('Retrievals', value.id);
-    }
     return this.findParts({parentId: value.id})
       .then((parts) => {
         return Promise.all(parts.map(
-          item => this.removePart(item.id)
+          item => this.removePart(item)
         ));
       })
       .then(() => {
@@ -100,7 +97,7 @@ export default class RetrievalStore extends Dispatcher {
       .then(data => data && new Part(data));
   }
 
-  getParts() {
+  listParts() {
     return this.indexed.list('RetrievalParts')
       .then(data => data.map(item => new Part(item)));
   }
@@ -112,8 +109,8 @@ export default class RetrievalStore extends Dispatcher {
       .then(data => data.map(item => new Part(item)));
   }
 
-  removePart(id) {
-    return this.indexed.remove('RetrievalParts', id);
+  removePart(value) {
+    return this.indexed.remove('RetrievalParts', value.id);
   }
 
 }

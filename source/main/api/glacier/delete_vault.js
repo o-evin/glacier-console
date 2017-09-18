@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 
 export default function deleteVault(vault) {
 
@@ -8,7 +8,7 @@ export default function deleteVault(vault) {
       vaultName: vault.name,
     };
 
-    glacier.deleteVault(params, (error) => {
+    aws.deleteVault(params, (error) => {
       if(error) return reject(error);
       resolve();
     });

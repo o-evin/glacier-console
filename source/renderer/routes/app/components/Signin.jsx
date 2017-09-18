@@ -20,7 +20,7 @@ export default class Signin extends Component {
     const auth = new AwsAuth({
       region: AwsRegion.US_WEST_OREGON,
     });
-    
+
     this.state = {
       ...auth,
       isRemember: false,
@@ -30,7 +30,7 @@ export default class Signin extends Component {
   onSubmit(event) {
     event.preventDefault();
     const auth = new AwsAuth(this.state);
-    this.props.onSubmit(auth, this.state.isRemember);
+    return this.props.onSubmit(auth, this.state.isRemember);
   }
 
   render() {

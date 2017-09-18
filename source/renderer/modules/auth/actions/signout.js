@@ -8,9 +8,9 @@ import {
 } from '../../../../contracts/enums/action_types';
 
 export function signoutHandler() {
-  const queuer = remote.getGlobal('queuer');
+  const jobExecutor = remote.getGlobal('jobExecutor');
 
-  return queuer.stop()
+  return jobExecutor.stop()
     .then(() => {
 
       const config = remote.getGlobal('config');

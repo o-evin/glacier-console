@@ -35,8 +35,8 @@ const render = () => {
   );
 };
 
-const config = remote.getGlobal('config');
-const creds = remote.getGlobal('auth').aws || config.get('auth.aws');
+const creds = remote.getGlobal('auth').aws ||
+  remote.getGlobal('config').get('auth.aws');
 
 if(creds && creds.key && creds.secret) {
   const unsubscribe = store.subscribe(() => {

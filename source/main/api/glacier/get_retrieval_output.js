@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 
 export default function getRetrievalOutput({retrieval, part}) {
 
@@ -10,7 +10,7 @@ export default function getRetrievalOutput({retrieval, part}) {
       vaultName: retrieval.vaultName,
     };
 
-    glacier.getJobOutput(params, (error, data) => {
+    aws.getJobOutput(params, (error, data) => {
       if(error) return reject(error);
       resolve(data);
     });

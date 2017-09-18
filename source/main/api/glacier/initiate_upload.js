@@ -1,10 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import aws from './aws';
 
-import {glacier} from '../';
 import {Upload} from '../../../contracts/entities';
 import {UploadStatus} from '../../../contracts/enums';
-import {Transfer as Defaults} from '../../../contracts/const';
 
 export default function initiateUpload({filePath, pathRoot, vaultName,
   prefix = ''}) {
@@ -19,28 +18,25 @@ export default function initiateUpload({filePath, pathRoot, vaultName,
       pathRoot ? filePath.slice(pathRoot.length + 1) : path.basename(filePath),
     ).replace('\\', '/') ;
 
-    const partSize = global.config.get(
-      'transfer.partSizeInBytes',
-      Defaults.PART_SIZE_IN_BYTES
-    );
+    const {partSizeInBytes} = global.config.get('transfer');
 
     const params = {
       vaultName: vaultName,
       archiveDescription: description,
-      partSize: partSize.toString(),
+      partSize: partSizeInBytes.toString(),
     };
 
-    glacier.initiateMultipartUpload(params, (error, data) => {
+    aws.initiateMultipartUpload(params, (error, data) => {
       if(error) return reject(error);
 
       resolve(new Upload({
         id: data.uploadId,
-        partSize,
         archiveSize,
         description,
         vaultName,
         filePath,
         pathRoot,
+        partSize: partSizeInBytes,
         location: data.location,
         status: UploadStatus.PROCESSING,
         createdAt: new Date(),

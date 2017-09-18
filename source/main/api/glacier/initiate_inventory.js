@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 import {Retrieval} from '../../../contracts/entities';
 import {
   RetrievalType,
@@ -18,7 +18,7 @@ export default function initiateInventory(vault) {
       },
     };
 
-    glacier.initiateJob(params, (error, data) => {
+    aws.initiateJob(params, (error, data) => {
       if(error) return reject(error);
 
       resolve(new Retrieval({

@@ -12,9 +12,9 @@ export default function removeRetrieval(retrieval) {
 
     dispatch({type: RETRIEVAL_DELETE_REQUEST});
 
-    const {receiver} = remote.getGlobal('queuer');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return receiver.removeRetrieval(retrieval)
+    return jobExecutor.removeRetrieval(retrieval)
       .then(() => {
         dispatch({type: RETRIEVAL_DELETE_SUCCESS, payload: retrieval.id});
       })

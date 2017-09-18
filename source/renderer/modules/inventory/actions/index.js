@@ -1,2 +1,3 @@
 export removeArchive from './remove';
-export refreshInventory from './refresh';
+export requestInventory from './request';
+export cancelInventory from './cancel';

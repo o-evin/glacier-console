@@ -12,15 +12,9 @@ export default function removeArchive(archive) {
 
     dispatch({type: ARCHIVE_DELETE_REQUEST});
 
-    const glacier = remote.getGlobal('glacier');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return glacier.deleteArchive(archive.id, archive.vaultName)
-      .then(() => {
-
-        const {receiver} = remote.getGlobal('queuer');
-
-        return receiver.removeArchive(archive);
-      })
+    return jobExecutor.removeArchive(archive)
       .then(() => {
         dispatch({type: ARCHIVE_DELETE_SUCCESS, payload: archive.id});
       })

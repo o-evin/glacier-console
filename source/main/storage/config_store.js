@@ -11,11 +11,12 @@ export default class ConfigStore {
     const {name = Storage.CONFIG_FILE_NAME, defaults} = params || {};
     const userDataPath = app.getPath('userData');
 
+    this.defaults = defaults;
     this.path = path.join(userDataPath, name);
     this.data = this.parse(this.path, defaults);
   }
 
-  get(key, defaults) {
+  get(key) {
     if(isEmpty(key)) {
       var value = this.data;
     } else if(key.indexOf('.') > 0) {
@@ -23,9 +24,8 @@ export default class ConfigStore {
     } else {
       value = this.data[key];
     }
-    return isNil(value) ? defaults : (
-      value === Object(value) ? defaultsDeep(value, defaults) : value
-    );
+
+    return value;
   }
 
   getDeep(data, key) {

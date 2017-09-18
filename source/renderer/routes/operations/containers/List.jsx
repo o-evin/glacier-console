@@ -35,12 +35,12 @@ class OperationsContainer extends PureComponent {
 
   render() {
 
-    const {uploads, retrievals} = this.props;
+    const {uploads, retrievals, inventoryRequests} = this.props;
 
     return (
       <ListOperations
         uploads={uploads}
-        retrievals={retrievals}
+        retrievals={retrievals.concat(inventoryRequests)}
         onRemove={this.remove.bind(this)}
         onRestart={this.restart.bind(this)}
       />
@@ -51,7 +51,9 @@ class OperationsContainer extends PureComponent {
 function mapStateToProps(state) {
   const {list: uploads} = state.uploads;
   const {list: retrievals} = state.retrievals;
-  return {uploads, retrievals};
+  const {requests: inventoryRequests} = state.inventory;
+
+  return {uploads, retrievals, inventoryRequests};
 }
 
 export default connect(

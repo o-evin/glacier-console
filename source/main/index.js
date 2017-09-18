@@ -1,20 +1,32 @@
 import url from 'url';
 import path from 'path';
 
-import {app, dialog, BrowserWindow} from 'electron';
+import {app, dialog, BrowserWindow, Menu} from 'electron';
 
-import Queuer from './queuer';
+import JobExecutor from './executor';
 import ConfigStore from './storage/config_store';
+import {Transfer} from '../contracts/const';
 
-import * as glacier from './api/glacier';
+import {glacier} from './api';
 
 import logo from './assets/icons/png/64x64.png';
 
 let win;
 
-global.config = new ConfigStore();
-global.queuer = new Queuer();
+const defaults = {
+  transfer: {
+    partSizeInBytes: Transfer.PART_SIZE_IN_BYTES,
+    maximumActiveParts: Transfer.ACTIVE_PARTS_LIMIT,
+    downloadsPath: app.getPath('downloads'),
+  },
+};
+
+global.config = new ConfigStore({defaults});
+
+const jobExecutor = new JobExecutor();
+
 global.glacier = glacier;
+global.jobExecutor = jobExecutor;
 
 global.auth = {
   aws: null,
@@ -51,10 +63,29 @@ function createWindow() {
   });
 
   win.on('close', closeWindow);
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate([{
+    label: 'Application',
+    submenu: [
+      {role: 'close'},
+    ]}, {
+    label: 'Edit',
+    submenu: [
+      {role: 'undo'},
+      {role: 'redo'},
+      {type: 'separator'},
+      {role: 'cut'},
+      {role: 'copy'},
+      {role: 'paste'},
+      {role: 'pasteandmatchstyle'},
+      {role: 'delete'},
+      {role: 'selectall'},
+    ]},
+  ]));
 }
 
 function closeWindow(event) {
-  if (!app.forceQuit && global.queuer.isProcessing()) {
+  if (!app.forceQuit && jobExecutor.isProcessing()) {
 
     event.preventDefault();
 
@@ -77,7 +108,7 @@ function closeWindow(event) {
 }
 
 app.on('window-all-closed', () => {
-  global.queuer.stop()
+  jobExecutor.stop()
     .then(() => {
       app.quit();
     });

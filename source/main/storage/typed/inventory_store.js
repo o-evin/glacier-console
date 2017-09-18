@@ -1,9 +1,10 @@
-import {Inventory} from '../../../contracts/entities';
+import {Inventory, Retrieval} from '../../../contracts/entities';
 import {ActionType} from '../../../contracts/enums';
 
 const actions = {
   list: ActionType.INVENTORY_LIST_SUCCESS,
   update: ActionType.INVENTORY_UPDATE_SUCCESS,
+  listRetrievals: ActionType.INVENTORY_INIT_SUCCESS,
 };
 
 import Dispatcher from './dispatcher';
@@ -17,11 +18,13 @@ export default class InventoryStore extends Dispatcher {
   }
 
   reset() {
-    return this.indexed.reset('Inventory');
+    return this.indexed.reset('InventoryRetrievals')
+      .then(() => this.indexed.reset('Inventory'));
   }
 
   close() {
-    return this.indexed.close('Inventory');
+    return this.indexed.close('InventoryRetrievals')
+      .then(() => this.indexed.close('Inventory'));
   }
 
   create(value) {
@@ -32,6 +35,7 @@ export default class InventoryStore extends Dispatcher {
   subscribe(dispatch) {
     const unsubscribe = super.subscribe(dispatch);
     this.list(); // initial data load
+    this.listRetrievals(); // initial data load
     return unsubscribe;
   }
 
@@ -53,7 +57,15 @@ export default class InventoryStore extends Dispatcher {
   }
 
   remove(value) {
-    return this.indexed.remove('Inventory', value.id);
+    return this.findOneRetrieval({vaultName: value.vaultName})
+      .then((retrieval) => {
+        if(retrieval) {
+          return this.removeRetrieval(retrieval);
+        }
+      })
+      .then(() => {
+        return this.indexed.remove('Inventory', value.id);
+      });
   }
 
   get(id) {
@@ -78,6 +90,44 @@ export default class InventoryStore extends Dispatcher {
     const [value] = Object.values(criterion);
     return this.indexed.findBy('Inventory', key, value)
       .then(data => data && new Inventory(data));
+  }
+
+  createRetrieval(value) {
+    return this.indexed.create('InventoryRetrievals', value)
+      .then(data => new Retrieval(data));
+  }
+
+  updateRetrieval(value) {
+    return this.indexed.update('InventoryRetrievals', value)
+      .then(data => new Retrieval(data));
+  }
+
+  getRetrieval(id) {
+    return this.indexed.get('InventoryRetrievals', id)
+      .then(data => data && new Retrieval(data));
+  }
+
+  listRetrievals() {
+    return this.indexed.list('InventoryRetrievals')
+      .then(data => data.map(item => new Retrieval(item)));
+  }
+
+  findOneRetrieval(criterion) {
+    const [key] = Object.keys(criterion);
+    const [value] = Object.values(criterion);
+    return this.indexed.findBy('InventoryRetrievals', key, value)
+      .then(data => data && new Retrieval(data));
+  }
+
+  findRetrievals(criterion) {
+    const [key] = Object.keys(criterion);
+    const [value] = Object.values(criterion);
+    return this.indexed.getMany('InventoryRetrievals', key, value)
+      .then(data => data.map(item => new Retrieval(item)));
+  }
+
+  removeRetrieval(value) {
+    return this.indexed.remove('InventoryRetrievals', value.id);
   }
 
 }

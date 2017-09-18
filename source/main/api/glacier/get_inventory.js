@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 import {Archive, Inventory} from '../../../contracts/entities';
 
 export default function getInventory(retrieval) {
@@ -10,7 +10,7 @@ export default function getInventory(retrieval) {
       vaultName: retrieval.vaultName,
     };
 
-    glacier.getJobOutput(params, (error, response) => {
+    aws.getJobOutput(params, (error, response) => {
       if(error) return reject(error);
 
       const data = JSON.parse(response.body.toString('utf8'));

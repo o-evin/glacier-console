@@ -1,4 +1,5 @@
-import {glacier} from '../';
+import aws from './aws';
+
 import {Retrieval} from '../../../contracts/entities';
 import {RetrievalStatus} from '../../../contracts/enums';
 
@@ -12,7 +13,7 @@ export default function listRetrievals(vault, marker, retrievals = []) {
       vaultName: vault.name,
     };
 
-    glacier.listJobs(params, (error, data) => {
+    aws.listJobs(params, (error, data) => {
       if(error) return reject(error);
 
       retrievals = retrievals.concat(data.JobList.map(

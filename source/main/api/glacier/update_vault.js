@@ -1,4 +1,4 @@
-// import {glacier} from '../';
+// import aws from './aws';
 
 export default function updateVault({id, name}) {
 
@@ -12,7 +12,7 @@ export default function updateVault({id, name}) {
       vaultName: name,
     };
 
-    glacier.setVaultNotifications(params, (error, data) => {
+    aws.setVaultNotifications(params, (error, data) => {
       if(error) return reject(error);
       resolve();
     });

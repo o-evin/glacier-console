@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 
 export default function deleteArchive(id, vaultName) {
 
@@ -9,7 +9,7 @@ export default function deleteArchive(id, vaultName) {
       archiveId: id,
     };
 
-    glacier.deleteArchive(params, (error, data) => {
+    aws.deleteArchive(params, (error, data) => {
       if(error) return reject(error);
       resolve();
     });

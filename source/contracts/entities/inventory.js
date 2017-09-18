@@ -44,9 +44,8 @@ export default class Inventory extends Validator {
     this.sizeInBytes = raw.sizeInBytes;
     this.numberOfArchives = raw.numberOfArchives;
 
-    if(raw.archives && raw.archives.length > 0) {
-      this.archives = raw.archives.map(item => new Archive(item));
-    }
+    this.archives = raw.archives && raw.archives.length ?
+      raw.archives.map(item => new Archive(item)) : [];
 
     Object.defineProperty(this, 'id', {
       enumerable: true,

@@ -11,9 +11,9 @@ export default function removeUpload(upload) {
 
     dispatch({type: UPLOAD_DELETE_REQUEST});
 
-    const {uploader} = remote.getGlobal('queuer');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return uploader.removeUpload(upload)
+    return jobExecutor.removeUpload(upload)
       .then(() => {
         dispatch({type: UPLOAD_DELETE_SUCCESS, payload: upload.id});
       })

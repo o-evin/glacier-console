@@ -8,7 +8,7 @@
     "pack": "./scripts/pack.sh",
     "start": "node --require babel-register ./scripts/start.js",
     "build": "node --require babel-register ./scripts/build.js",
-    "electron": "DEBUG=uploader,receiver,ui electron ."
+    "electron": "DEBUG=executor:* electron ."
   },
   "repository": {
     "type": "git",

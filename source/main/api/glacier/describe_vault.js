@@ -1,11 +1,11 @@
-import {glacier} from '../';
+import aws from './aws';
 import {Vault} from '../../../contracts/entities';
 
 export default function describeVault(vaultName) {
 
   return new Promise((resolve, reject) => {
 
-    glacier.describeVault({vaultName}, (error, data) => {
+    aws.describeVault({vaultName}, (error, data) => {
       if(error) return reject(error);
 
       const vault = new Vault({

@@ -1,4 +1,5 @@
-import {glacier} from '../';
+import aws from './aws';
+
 import {Upload} from '../../../contracts/entities';
 
 export default function listUploads(vault, marker, uploads = []) {
@@ -10,7 +11,7 @@ export default function listUploads(vault, marker, uploads = []) {
       vaultName: vault.name,
     };
 
-    glacier.listMultipartUploads(params, (error, data) => {
+    aws.listMultipartUploads(params, (error, data) => {
 
       if(error) return reject(error);
 

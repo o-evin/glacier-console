@@ -2,7 +2,6 @@ import React, {PureComponent} from 'react';
 import {remote} from 'electron';
 
 import Settings from '../components/Settings';
-import {Transfer as Defaults} from '../../../../contracts/const';
 
 const config = remote.getGlobal('config');
 
@@ -13,17 +12,13 @@ export default class SettingsContainer extends PureComponent {
   }
 
   render() {
-    const defaults = {
-      partSizeInBytes: Defaults.PART_SIZE_IN_BYTES,
-      maximumActiveParts: Defaults.ACTIVE_PARTS_LIMIT,
-      downloadsPath: remote.app.getPath('downloads'),
-    };
 
-    const transferConfig = config.get('transfer', defaults);
+    const transferConfig = config.get('transfer');
 
     return (
       <Settings
         config={transferConfig}
+        defaults={config.defaults.transfer}
         onSubmit={this.onSubmit.bind(this)}
       />
     );

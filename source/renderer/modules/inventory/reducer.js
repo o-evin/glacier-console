@@ -1,10 +1,12 @@
 import listUpdate from '../../helpers/list_update';
-import {Archive, Inventory} from '../../../contracts/entities';
+import {Archive, Retrieval, Inventory} from '../../../contracts/entities';
 
 import {
   ARCHIVE_DELETE_SUCCESS,
   INVENTORY_LIST_SUCCESS,
   INVENTORY_UPDATE_SUCCESS,
+  INVENTORY_INIT_SUCCESS,
+  INVENTORY_CANCEL_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
 const compare = (a, b) => (b.createdAt - a.createdAt);
@@ -33,6 +35,10 @@ function updateInventory(state, data) {
 
 }
 
+function cast(data) {
+  return Array.isArray(data) ?
+    data.map(item => new Retrieval(item)) : new Retrieval(data);
+}
 
 export default function(state = {}, action) {
   switch (action.type) {
@@ -40,6 +46,18 @@ export default function(state = {}, action) {
     case INVENTORY_LIST_SUCCESS:
     case INVENTORY_UPDATE_SUCCESS:
       return updateInventory(state, action.payload);
+
+    case INVENTORY_INIT_SUCCESS:
+      return {
+        ...state,
+        requests: listUpdate(state.requests, cast(action.payload)),
+      };
+
+    case INVENTORY_CANCEL_SUCCESS:
+      return {
+        ...state,
+        requests: state.requests.filter(item => item.id !== action.payload),
+      };
 
     case ARCHIVE_DELETE_SUCCESS:
       return {

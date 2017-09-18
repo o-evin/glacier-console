@@ -8,16 +8,20 @@ import {
   VAULT_DELETE_FAILURE,
 } from '../../../../contracts/enums/action_types';
 
-const glacier = remote.getGlobal('glacier');
 
 export default function removeVault(vault, navigateOnSuccess) {
   return (dispatch) => {
 
     dispatch({type: VAULT_DELETE_REQUEST});
 
+    const glacier = remote.getGlobal('glacier');
+
     return glacier.deleteVault(vault)
       .then(() => {
-
+        const {receiver} = remote.getGlobal('glacier');
+        return receiver.deleteInventory();
+      })
+      .then(() => {
         if(navigateOnSuccess) {
           dispatch(redirectTo(navigateOnSuccess));
         }

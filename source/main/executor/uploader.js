@@ -4,36 +4,34 @@ import Queue from './queue';
 import TreeHash from '../api/hasher/tree_hash';
 
 import {dialog} from 'electron';
-import {QueueRejectError} from '../../contracts/errors';
-import {Transfer as Defaults} from '../../contracts/const';
+
+import {glacier} from '../api';
 
 import {
-  RequestType,
-  UploadStatus,
-  UploaderStatus,
   PartStatus,
+  RequestType,
+  QueueStatus,
+  UploadStatus,
 } from '../../contracts/enums';
 
 import UploadStore from '../storage/typed/upload_store';
 
-import * as glacier from '../api/glacier';
-
-const debug = new Debug('uploader');
+const debug = new Debug('executor:uploader');
 
 export default class Uploader {
 
   constructor(queue) {
     this.queue = new Queue();
     this.store = new UploadStore();
-    this.status = UploaderStatus.PENDING;
+    this.status = QueueStatus.PENDING;
   }
 
   start() {
 
-    if(this.status === UploaderStatus.PENDING) {
+    if(this.status === QueueStatus.PENDING) {
 
       this.queue.start();
-      this.status = UploaderStatus.PROCESSING;
+      this.status = QueueStatus.PROCESSING;
 
       debug('STARTING');
 
@@ -84,8 +82,6 @@ export default class Uploader {
         })
         .catch((error) => {
 
-          if(error instanceof QueueRejectError) return;
-
           debug('APP ERROR');
 
           dialog.showErrorBox('A fatal error',
@@ -98,6 +94,98 @@ export default class Uploader {
     }
 
   }
+
+  stop() {
+    debug('STOPPING (status: %s)', this.status);
+
+    this.status = QueueStatus.PENDING;
+
+    return this.queue.stop()
+      .then(() => {
+        return this.store.close();
+      })
+      .then(() => {
+        debug('STOPPED');
+      });
+  }
+
+  push(upload) {
+
+    const parts = upload.getParts();
+
+    debug('PUSH UPLOAD %s (parts: %s)', upload.description, parts.length);
+
+    return Promise.all(parts.map(
+      item => this.store.createPart(item)
+    ))
+      .then(() => {
+        return this.store.create(upload);
+      })
+      .then((upload) => {
+        this.queueUpload(upload);
+        return upload;
+      });
+
+  }
+
+  restart(upload) {
+    debug('RESTART UPLOAD %s (status: %s)', upload.description, upload.status);
+
+    return this.queue.remove(upload)
+      .then(() => {
+        upload.status = UploadStatus.PROCESSING;
+        return this.store.update(upload);
+      })
+      .then((upload) => {
+        this.queueUpload(upload);
+        return upload;
+      });
+  }
+
+  remove(upload) {
+
+    debug('DELETE UPLOAD', upload.description);
+
+    upload.status = UploadStatus.HOLD;
+
+    return this.store.update(upload)
+      .then((upload) => {
+        return this.queue.remove(upload);
+      })
+      .then(() => {
+        return this.store.remove(upload);
+      });
+  }
+
+  isProcessing() {
+    return this.queue.isProcessing();
+  }
+
+  subscribe(listener) {
+    debug('SUBSCRIBE to store');
+
+    return this.store.subscribe(listener);
+  }
+
+  syncInventory(inventory) {
+    return this.store.find({vaultName: inventory.vaultName})
+      .then((uploads) => {
+
+        debug('INVENTORY UPDATE (%s, date: %s)',
+          inventory.id, inventory.createdAt
+        );
+
+        const {archives, createdAt} = inventory;
+
+        return Promise.all(
+          uploads.filter(upload =>
+            upload.completedAt < createdAt ||
+            archives.some(item => item.id === upload.archiveId)
+          ).map(item => this.store.remove(item))
+        );
+      });
+  }
+
 
   actualizeUploads(uploads) {
 
@@ -140,7 +228,7 @@ export default class Uploader {
 
   actualizeParts(uploads) {
 
-    return this.store.getParts()
+    return this.store.listParts()
       .then((parts) => {
 
         debug('ACTUALIZE %s parts', parts.length);
@@ -150,7 +238,7 @@ export default class Uploader {
             item => uploads.some(
               upload => upload.id === item.parentId
             ) === false
-          ).map(part => this.store.removePart(part.id))
+          ).map(part => this.store.removePart(part))
         )
           .then((deleted) => {
 
@@ -171,12 +259,8 @@ export default class Uploader {
 
     return this.store.findParts({parentId: upload.id})
       .then((parts) => {
-        return this.queue.push(
-          parts.map(
-            part => this.uploadPart.bind(this, part)
-          ),
-          RequestType.UPLOAD_PART,
-          upload.id
+        return Promise.all(
+          parts.map(this.uploadPart.bind(this))
         );
       }).then((parts) => {
 
@@ -191,17 +275,11 @@ export default class Uploader {
         return this.store.update(upload);
 
       }).then((upload) => {
-        return this.queue.push(
-          this.finalizeUpload.bind(this, upload),
-          RequestType.GENERAL,
-          upload.id
-        );
+        return this.finalizeUpload(upload);
       })
       .catch((error) => {
 
-        if(error instanceof QueueRejectError) return;
-
-        debug('UPLOAD ERROR', upload.description, error);
+        debug('ERROR (upload: %s) %O', upload.description, error);
 
         dialog.showErrorBox('Upload error',
           `There was an error with ${upload.description} operation:
@@ -213,7 +291,7 @@ export default class Uploader {
       });
   }
 
-  uploadPart(part, attempt = 0) {
+  uploadPart(part) {
 
     if(part.status === PartStatus.DONE) {
       return Promise.resolve(part);
@@ -224,14 +302,15 @@ export default class Uploader {
     return this.store.get(part.parentId)
       .then((upload) => {
 
-        if(!upload) throw new Error('Upload is incorrect.');
-
         let buffer = Buffer.alloc(part.size);
         const fd = fs.openSync(upload.filePath, 'r');
 
         fs.readSync(fd, buffer, 0, part.size, part.position);
 
-        return glacier.uploadPart(part, upload.vaultName, buffer)
+        return this.queue.push(
+          glacier.uploadPart.bind(null, part, upload.vaultName, buffer), {
+            type: RequestType.UPLOAD_PART, reference: upload.id,
+          })
           .then(({checksum}) => {
 
             debug('PART DONE (id: %s)', part.id);
@@ -242,164 +321,27 @@ export default class Uploader {
             buffer = null;
 
             return this.store.updatePart(part);
-          })
-          .catch((error) => {
-
-            debug('PART ERROR (id: %s): %O', part.id, error);
-
-            if(attempt < Defaults.UPLOAD_RETRY_ATTEMPTS) {
-
-              debug('RETRY', attempt, part.id);
-
-              return this.uploadPart(part, ++attempt);
-            }
-
-            throw error;
           });
       });
 
   }
 
-  finalizeUpload(upload, attempt = 0) {
+  finalizeUpload(upload) {
 
     debug('FINALIZE', upload.description);
 
-    return this.store.get(upload.id)
+    return this.queue.push(
+      glacier.completeUpload.bind(null, upload),
+      {reference: upload.id}
+    )
       .then((upload) => {
 
-        if(!upload) return;
+        debug('FINALIZED', upload.description);
 
-        return glacier.completeUpload(upload)
-          .then((upload) => {
-
-            debug('FINALIZED', upload.description);
-
-            upload.status = UploadStatus.DONE;
-            return this.store.update(upload);
-          })
-          .catch((error) => {
-
-            debug('FINALIZE ERROR', upload.description, error);
-
-            if(attempt < Defaults.UPLOAD_RETRY_ATTEMPTS) {
-
-              debug('FINALIZE RETRY', upload.description, attempt + 1);
-
-              return this.finalizeUpload(upload, ++attempt);
-            }
-
-            throw error;
-          });
-
-      });
-  }
-
-  push(upload) {
-
-    const parts = upload.parts;
-
-    debug('NEW UPLOAD %s (parts: %s)', upload.description, parts.length);
-
-    return Promise.all(parts.map(
-      item => this.store.createPart(item)
-    ))
-      .then(() => {
-        return this.store.create(upload);
-      })
-      .then((upload) => {
-        this.queueUpload(upload);
-        return upload;
-      });
-
-  }
-
-  inventoryUpdate(inventory) {
-    return this.store.find({vaultName: inventory.vaultName})
-      .then((uploads) => {
-
-        debug(
-          'INVENTORY UPDATE (%s, date: %s)',
-          inventory.id, inventory.createdAt
-        );
-
-        const archives = inventory.archives || [];
-
-        return Promise.all(
-          uploads.filter(upload =>
-            upload.completedAt < inventory.createdAt ||
-            archives.some(item => item.id === upload.archiveId)
-          ).map(item => this.store.remove(item))
-        );
-      });
-  }
-
-  restartUpload(upload) {
-
-    return this.store.get(upload.id)
-      .then((upload) => {
-
-        if(upload.status !== UploadStatus.ERROR) {
-          return upload;
-        }
-
-        debug('RESTART UPLOAD', upload.description);
-
-        upload.status = UploadStatus.PROCESSING;
+        upload.status = UploadStatus.DONE;
         return this.store.update(upload);
-      })
-      .then((upload) => {
-        return this.queue.remove(upload.id)
-          .then(() => upload);
-      })
-      .then((upload) => {
-        this.queueUpload(upload);
-        return upload;
       });
-  }
 
-  removeUpload(upload) {
-
-    debug('DELETE UPLOAD', upload.description);
-
-    upload.status = UploadStatus.HOLD;
-
-    return this.store.update(upload)
-      .then((upload) => {
-        return this.queue.remove(upload.id);
-      })
-      .then(() => {
-        return this.store.get(upload.id);
-      })
-      .then((upload) => {
-        return upload.archiveId ?
-          glacier.deleteArchive(upload.archiveId, upload.vaultName) :
-          glacier.abortUpload(upload);
-      })
-      .then(() => {
-        return this.store.remove(upload);
-      });
-  }
-
-  stop() {
-    debug('STOPPING (status: %s)', this.status);
-
-    this.status = UploaderStatus.PENDING;
-
-    return this.queue.stop()
-      .then(() => {
-        return this.store.close();
-      })
-      .then(() => {
-        debug('STOPPED', this.status);
-      });
-  }
-
-  isProcessing() {
-    return this.queue.isProcessing();
-  }
-
-  subscribe(listener) {
-    return this.store.subscribe(listener);
   }
 
 }

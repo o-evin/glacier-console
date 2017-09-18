@@ -5,9 +5,10 @@ import React, {PureComponent} from 'react';
 import ActionButton from '../../../controls/ActionButton';
 
 import {Retrieval, Upload} from '../../../../contracts/entities';
+
 import {
-  RetrievalStatus,
   UploadStatus,
+  RetrievalStatus,
   RetrievalAction,
 } from '../../../../contracts/enums';
 
@@ -235,6 +236,9 @@ export default class Operations extends PureComponent {
       .groupBy(item => item.vaultName)
       .map((value, key) => ([key,
         value.reduce((res, item) => {
+
+          //TODO: refactor this
+
           if(item.status === UploadStatus.ERROR) {
             res.errors.push(item);
           } else if(item.status === UploadStatus.PROCESSING) {
@@ -257,14 +261,15 @@ export default class Operations extends PureComponent {
       .value();
 
     const retrievals = chain(this.props.retrievals)
-      .groupBy(item => `${item.vaultName}`)
+      .groupBy(item => item.vaultName)
       .map((value, key) => ([key,
         value.reduce((res, item) => {
+
           if(item.action === RetrievalAction.INVENTORY) {
             res.inventory.push(item);
           } else if(item.status === RetrievalStatus.PENDING) {
             res.preparing.push(item);
-          }
+          } 
 
           if(item.status === RetrievalStatus.ERROR) {
             res.errors.push(item);

@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 
 export default function abortUpload(upload) {
 
@@ -9,7 +9,7 @@ export default function abortUpload(upload) {
       vaultName: upload.vaultName,
     };
 
-    glacier.abortMultipartUpload(params, (error, data) => {
+    aws.abortMultipartUpload(params, (error, data) => {
       if(error) return reject(error);
       resolve(upload);
     });

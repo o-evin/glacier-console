@@ -12,9 +12,9 @@ export default function restartRetrieval(retrieval) {
 
     dispatch({type: RETRIEVAL_RESTART_REQUEST});
 
-    const {receiver} = remote.getGlobal('queuer');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return receiver.restartRetrieval(retrieval)
+    return jobExecutor.restartRetrieval(retrieval)
       .then((upload) => {
         dispatch({type: RETRIEVAL_RESTART_SUCCESS, payload: retrieval});
       })

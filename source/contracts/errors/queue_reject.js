@@ -1,10 +1,10 @@
 function QueueRejectError(message) {
   this.name = 'QueueRejectError';
-  this.message = message || 'The queue is not ready to process your request ' +
-    'at this moment.';
+  this.message = message || 'Queue is not operational at the moment';
+  this.stack = (new Error()).stack;
 }
 
-QueueRejectError.prototype = new Error();
+QueueRejectError.prototype = Object.create(Error.prototype);
 QueueRejectError.prototype.constructor = QueueRejectError;
 
 export default QueueRejectError;

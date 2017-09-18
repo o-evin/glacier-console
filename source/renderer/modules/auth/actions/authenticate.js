@@ -1,6 +1,6 @@
 import {push as redirectTo} from 'react-router-redux';
 import {remote} from 'electron';
-import {signout} from '../../auth/actions';
+import {signoutHandler} from './signout';
 
 import {
   AUTH_SIGNIN_REQUEST,
@@ -18,13 +18,17 @@ export function authenticateHandler(creds, isRemember, listener) {
     .then(() => {
 
       if(isRemember) {
-        remote.getGlobal('config').set('auth.aws', creds);
+        const config = remote.getGlobal('config');
+        config.set('auth.aws', creds);
       }
 
       if(listener) {
-        const queuer = remote.getGlobal('queuer');
-        queuer.start();
-        const unsubscribe = queuer.subscribe(listener);
+        const jobExecutor = remote.getGlobal('jobExecutor');
+
+        jobExecutor.start();
+
+        const unsubscribe = jobExecutor.subscribe(listener);
+
         window.addEventListener('beforeunload', () => {
           unsubscribe();
         }, {once: true});
@@ -48,8 +52,14 @@ export default function authenticate(auth, isRemember, navigateOnSuccess) {
       })
       .catch((error) => {
         dispatch({type: AUTH_SIGNIN_FAILURE});
-        dispatch(signout());
-        alert(error.message || error.toString());
+
+        if(error.code === 'CredentialsError') {
+          alert('Unable to authenticate the request. The provided '
+            + 'credentials are not valid.');
+          signoutHandler();
+        }
+
+        return Promise.reject(error);
       });
 
   };

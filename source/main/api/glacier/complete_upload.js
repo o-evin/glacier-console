@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 import {Upload} from '../../../contracts/entities';
 import {UploadStatus} from '../../../contracts/enums';
 
@@ -14,7 +14,7 @@ export default function completeUpload(upload) {
       archiveSize: upload.archiveSize.toString(),
     };
 
-    glacier.completeMultipartUpload(params, (error, data) => {
+    aws.completeMultipartUpload(params, (error, data) => {
       if(error) return reject(error);
 
       resolve(

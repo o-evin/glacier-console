@@ -1,4 +1,5 @@
-import {glacier} from '../';
+import aws from './aws';
+
 import {Retrieval} from '../../../contracts/entities';
 import {
   RetrievalTier,
@@ -34,7 +35,7 @@ export default function initiateRetrieval({vaultName, archiveId, filePath,
       },
     };
 
-    glacier.initiateJob(params, (error, data) => {
+    aws.initiateJob(params, (error, data) => {
       if(error) return reject(error);
 
       resolve(new Retrieval({

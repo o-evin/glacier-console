@@ -13,6 +13,4 @@ export * as RetrievalStatusCode from './retrieval_status_code';
 
 export * as RequestType from './request_type';
 
-export * as UploaderStatus from './uploader_status';
-export * as ReceiverStatus from './receiver_status';
 export * as QueueStatus from './queue_status';

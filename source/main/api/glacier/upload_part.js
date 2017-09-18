@@ -1,4 +1,5 @@
-import {glacier} from '../';
+import aws from './aws';
+
 import TreeHash from '../hasher/tree_hash';
 
 export default function uploadPart(part, vaultName, data) {
@@ -13,7 +14,7 @@ export default function uploadPart(part, vaultName, data) {
       body: data,
     };
 
-    glacier.uploadMultipartPart(params, (error, data) => {
+    aws.uploadMultipartPart(params, (error, data) => {
       if(error) return reject(error);
       resolve(data);
     });

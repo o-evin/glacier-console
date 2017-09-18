@@ -6,12 +6,13 @@ import {remote} from 'electron';
 import ActionButton from '../../../controls/ActionButton';
 
 import Component from '../../../helpers/component';
-import {Transfer as Defaults, Size} from '../../../../contracts/const';
+import {Size} from '../../../../contracts/const';
 
 export default class Settings extends Component {
 
   static propTypes = {
     config: PropTypes.object.isRequired,
+    defaults: PropTypes.object.isRequired,
     onSubmit: PropTypes.func.isRequired,
   }
 
@@ -69,7 +70,7 @@ export default class Settings extends Component {
   }
 
   render() {
-
+    const {defaults} = this.props;
     const {partSize, activeParts, downloadsPath} = this.state;
 
     return (
@@ -92,7 +93,7 @@ export default class Settings extends Component {
                     The part size must be a megabyte multiplied by a power of 2.
                     For example, 1 MB, 2 MB, 4 MB, 8 MB, and so on.
                     The minimum allowable part size is 1 MB, and the maximum is
-                    4096 MB. Default is {bytes(Defaults.PART_SIZE_IN_BYTES)}.
+                    4096 MB. Default is {bytes(defaults.partSizeInBytes)}.
                   </small>
                 </div>
               </div>
@@ -109,7 +110,7 @@ export default class Settings extends Component {
                   <small className="form-text text-muted">
                     Maximum parts for all concurrent archive transfers
                     to upload in parallel.
-                    Default is {Defaults.ACTIVE_PARTS_LIMIT}.
+                    Default is {defaults.maximumActiveParts}.
                   </small>
                 </div>
               </div>
@@ -148,7 +149,7 @@ export default class Settings extends Component {
                   <small className="form-text text-muted">
                     Downloaded archives are automatically saved
                     in the Downloads folder.
-                    Default is {remote.app.getPath('downloads')}.
+                    Default is {defaults.downloadsPath}.
                   </small>
                 </div>
               </div>

@@ -9,7 +9,7 @@ import Inventory from '../../inventory';
 import ViewVault from '../components/View';
 import FetchSpinner from '../../../controls/FetchSpinner';
 
-import {FetchStatus, RetrievalAction} from '../../../../contracts/enums';
+import {FetchStatus} from '../../../../contracts/enums';
 
 import {
   getVault,
@@ -30,7 +30,8 @@ import {
 
 import {
   removeArchive,
-  refreshInventory,
+  requestInventory,
+  cancelInventory,
 } from '../../../modules/inventory/actions';
 
 class ViewVaultContainer extends PureComponent {
@@ -185,7 +186,7 @@ class ViewVaultContainer extends PureComponent {
       return <FetchSpinner status={this.state.fetchStatus} />;
     }
 
-    const {vault, vaultName, inventory, prefix} = this.props;
+    const {vault, vaultName, inventory, inventoryRequests, prefix} = this.props;
 
     const uploads = this.filterByPath(this.props.uploads);
     const archives = this.filterByPath(this.props.archives);
@@ -194,9 +195,8 @@ class ViewVaultContainer extends PureComponent {
       item => archives.some(archive => archive.id === item.archiveId)
     );
 
-    const inventoryRetrieval = prefix ? null : this.props.retrievals.find(
-      item => item.vaultName === vaultName &&
-        item.action === RetrievalAction.INVENTORY
+    const inventoryRetrieval = prefix ? null : inventoryRequests.find(
+      item => item.vaultName === vaultName
     );
 
     return (
@@ -217,7 +217,8 @@ class ViewVaultContainer extends PureComponent {
           onShowRetrievals={this.showRetrievals.bind(this)}
           onUploadFiles={this.uploadFiles.bind(this)}
           onUploadDirectory={this.uploadDirectory.bind(this)}
-          onRefreshInventory={this.props.refreshInventory.bind(null, vault)}>
+          onRequestInventory={this.props.requestInventory.bind(null, vault)}
+          onCancelInventory={this.props.cancelInventory}>
         </ViewVault>
         <Route component={Inventory} />
       </div>
@@ -235,7 +236,7 @@ function mapStateToProps(state, props) {
   const inventory = state.inventory.list &&
     state.inventory.list.find(item => item.vaultName === vaultName);
 
-  const {archives} = state.inventory;
+  const {archives, requests: inventoryRequests} = state.inventory;
   const {stats: uploadStats, list: uploads} = state.uploads;
   const {stats: retrievalStats, list: retrievals} = state.retrievals;
 
@@ -249,6 +250,7 @@ function mapStateToProps(state, props) {
     retrievals,
     retrievalStats,
     archives,
+    inventoryRequests,
   };
 }
 
@@ -263,7 +265,8 @@ export default connect(
     removeArchive,
     restartRetrieval,
     removeRetrieval,
-    refreshInventory,
+    requestInventory,
+    cancelInventory,
     initiateRetrieval,
   }
 )(ViewVaultContainer);

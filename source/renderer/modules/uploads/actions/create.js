@@ -11,20 +11,9 @@ export default function createUpload({vaultName, prefix, filePath, pathRoot}) {
 
     dispatch({type: UPLOAD_CREATE_REQUEST});
 
-    const params = {
-      prefix,
-      filePath,
-      pathRoot,
-      vaultName,
-    };
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    const glacier = remote.getGlobal('glacier');
-
-    return glacier.initiateUpload(params)
-      .then((upload) => {
-        const {uploader} = remote.getGlobal('queuer');
-        return uploader.push(upload);
-      })
+    return jobExecutor.requestUpload({vaultName, prefix, filePath, pathRoot})
       .then((upload) => {
         dispatch({type: UPLOAD_CREATE_SUCCESS, payload: upload});
       })

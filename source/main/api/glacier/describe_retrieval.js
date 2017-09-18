@@ -1,4 +1,4 @@
-import {glacier} from '../';
+import aws from './aws';
 import {Retrieval} from '../../../contracts/entities';
 import {RetrievalStatus} from '../../../contracts/enums';
 
@@ -11,7 +11,7 @@ export default function describeRetrieval(retrieval) {
       vaultName: retrieval.vaultName,
     };
 
-    glacier.describeJob(params, (error, data) => {
+    aws.describeJob(params, (error, data) => {
       if(error) return reject(error);
 
       resolve(new Retrieval({
