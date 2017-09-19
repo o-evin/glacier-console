@@ -10,11 +10,24 @@ const debug = new Debug('executor:waiter');
 export default class Waiter {
 
   constructor(queue) {
+    this.listeners = [];
     this.queue = new Queue();
+  }
+
+  subscribe(listener) {
+    this.listeners.push(listener);
+
+    const unsubscribe = () => {
+      this.listeners.splice(this.listeners.indexOf(listener), 1);
+    };
+
+    return unsubscribe;
   }
 
   push(handler, criterion, options = {}) {
     const {reference} = options;
+
+    debug('PUSH WAITER', handler.name, criterion);
 
     return this.deferred(
       new WaiterJob({handler, reference, criterion})
@@ -23,14 +36,20 @@ export default class Waiter {
 
   deferred(job) {
     return new Promise((resolve, reject) => {
-      this.wait(job, resolve).catch(reject);
-    });
+      this.wait(job, resolve, reject);
+    })
+      .then((response) => {
+        for(let listener of this.listeners) {
+          listener(response);
+        }
+        return response;
+      });
   }
 
-  wait(job, resolve) {
+  wait(job, resolve, reject) {
     const {handler, reference} = job;
 
-    debug('REQUEST UPDATE', handler.name);
+    debug('CHECK', handler.name);
 
     return this.queue.push(handler, {type: RequestType.WAITER, reference})
       .then((response) => {
@@ -45,21 +64,31 @@ export default class Waiter {
         }
 
         if(response[key] !== value) {
-          debug('CONTINUE WAIT', handler.name);
+          debug('CONTINUE %s (expected: %s, received: %s)',
+            handler.name, value, response[key]);
 
           return setTimeout(
-            this.wait.bind(this, job, resolve),
+            this.wait.bind(this, job, resolve, reject),
             Transfer.STATUS_INTERVAL
           );
         }
 
         debug('READY', handler.name);
-        resolve(value);
-      });
+        resolve(response);
+      })
+      .catch(reject);
+  }
+
+  start() {
+    return this.queue.start();
   }
 
   stop() {
-    throw Error('Not yet implemented');
+    return this.queue.stop();
+  }
+
+  remove(item) {
+    return this.queue.remove(item);
   }
 
 }

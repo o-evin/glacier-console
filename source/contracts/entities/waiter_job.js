@@ -1,5 +1,5 @@
 import uuid from 'uuid';
-import {isNil, isFunction, isDataObject, isEmpty} from 'lodash';
+import {isNil, isFunction, isPlainObject, isEmpty} from 'lodash';
 
 class Validator {
   constructor() {
@@ -8,7 +8,7 @@ class Validator {
 
         switch (key) {
           case 'criterion':
-            if(isEmpty(value) || !isDataObject(value)) {
+            if(isEmpty(value) || !isPlainObject(value)) {
               throw new TypeError('Wait criterion is invalid');
             }
             break;

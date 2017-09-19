@@ -1,17 +1,16 @@
 import Debug from 'debug';
-import Queue from './queue';
-
 import {dialog} from 'electron';
 
+import Queue from './queue';
+import Waiter from './waiter';
+import InventoryStore from '../storage/typed/inventory_store';
+
 import {glacier} from '../api';
-import {Transfer} from '../../contracts/const';
 
 import {
   QueueStatus,
   RetrievalStatus,
 } from '../../contracts/enums';
-
-import InventoryStore from '../storage/typed/inventory_store';
 
 const debug = new Debug('executor:inventorizer');
 
@@ -19,6 +18,7 @@ export default class Inventorizer {
 
   constructor(queue) {
     this.queue = new Queue();
+    this.waiter = new Waiter();
     this.store = new InventoryStore();
     this.status = QueueStatus.PENDING;
   }
@@ -27,6 +27,7 @@ export default class Inventorizer {
     if(this.status === QueueStatus.PENDING) {
 
       this.queue.start();
+      this.waiter.start();
 
       debug('STARTING');
 
@@ -39,7 +40,7 @@ export default class Inventorizer {
           debug('ACTIVE %s retrievals', retrievals.length);
 
           if(retrievals.length > 0) {
-            this.initPendingHandler();
+            retrievals.forEach(this.processRetrieval.bind(this));
           }
 
           debug('INIT DONE');
@@ -60,12 +61,31 @@ export default class Inventorizer {
     }
   }
 
+  processRetrieval(retrieval) {
+    return this.waiter.push(
+      glacier.describeRetrieval.bind(null, retrieval),
+      {status: RetrievalStatus.PROCESSING},
+      {reference: retrieval.id},
+    )
+      .then(this.retrieveInventory.bind(this))
+      .catch((error) => {
+        debug('INVENTORY ERROR (id: %s): %O',
+          retrieval.description, error
+        );
+
+        this.store.removeRetrieval(retrieval);
+      });
+  }
+
   stop() {
     debug('STOPPING (status: %s)', this.status);
 
     this.status = QueueStatus.PENDING;
 
-    return this.queue.stop()
+    return Promise.all([
+      this.queue.stop(),
+      this.waiter.stop(),
+    ])
       .then(() => {
         return this.store.close();
       })
@@ -110,7 +130,7 @@ export default class Inventorizer {
             return this.store.createRetrieval(retrieval);
           })
           .then((retrieval) => {
-            this.initPendingHandler();
+            this.processRetrieval(retrieval);
             return retrieval;
           });
       });
@@ -120,7 +140,10 @@ export default class Inventorizer {
   cancel(retrieval) {
     debug('REMOVE RETRIEVAL', retrieval.description);
 
-    return this.queue.remove(retrieval)
+    return Promise.all([
+      this.queue.remove(retrieval),
+      this.waiter.remove(retrieval),
+    ])
       .then(() => {
         return this.store.removeRetrieval(retrieval);
       });
@@ -225,95 +248,6 @@ export default class Inventorizer {
             }),
 
         ]);
-      });
-  }
-
-
-  initPendingHandler() {
-
-    if(this.status === QueueStatus.PENDING) {
-
-      debug('INIT PENDING HANDLER');
-
-      this.status = QueueStatus.PROCESSING;
-
-      const handler = () => {
-
-        this.store.listRetrievals()
-          .then((retrievals) => {
-
-            debug('REQUESTING %s inventories', retrievals.length);
-
-            return Promise.all(
-              retrievals.map(this.requestRetrievalStatus.bind(this))
-            );
-
-          })
-          .then((retrievals) => {
-            const processing = retrievals.filter(
-              item => item.status === RetrievalStatus.PROCESSING
-            );
-
-            const pending = retrievals.filter(
-              item => item.status === RetrievalStatus.PENDING
-            );
-
-            if(processing.length > 0) {
-              debug('UPDATE %s inventories', retrievals.length);
-
-              return Promise.all(
-                processing.map(this.retrieveInventory.bind(this))
-              ).then(() => pending);
-            }
-
-            return pending;
-
-          })
-          .then((retrievals) => {
-
-            debug('PENDING %s retrievals', retrievals.length);
-
-            if(this.status === QueueStatus.PROCESSING && retrievals.length) {
-              setTimeout(
-                handler.bind(this),
-                Transfer.STATUS_INTERVAL
-              );
-            } else {
-              this.status = QueueStatus.PENDING;
-            }
-          });
-      };
-
-      handler();
-    }
-  }
-
-  requestRetrievalStatus(retrieval, attempt = 0) {
-
-    return this.queue.push(
-      glacier.describeRetrieval.bind(null, retrieval), {
-        reference: retrieval.id,
-      }
-    )
-      .then((response) => {
-
-        debug('STATUS %s (status: %s)',
-          retrieval.description, response.status
-        );
-
-        if(retrieval.status !== response.status) {
-          return this.store.updateRetrieval(response);
-        }
-
-        return retrieval;
-      })
-      .catch((error) => {
-
-        debug('RETRIEVAL ERROR (%s): %O',
-          retrieval.description, error
-        );
-
-        this.store.removeRetrieval(retrieval);
       });
   }
 

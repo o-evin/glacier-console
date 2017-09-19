@@ -1,13 +1,15 @@
 import fs from 'fs';
 import path from 'path';
+import mkdirp from 'mkdirp';
 import Debug from 'debug';
-import Queue from './queue';
-import TreeHash from '../api/hasher/tree_hash';
-
 import {dialog} from 'electron';
 
+import Queue from './queue';
+import Waiter from './waiter';
+import TreeHash from '../api/hasher/tree_hash';
+import RetrievalStore from '../storage/typed/retrieval_store';
+
 import {glacier} from '../api';
-import {Transfer} from '../../contracts/const';
 
 import {
   PartStatus,
@@ -17,14 +19,13 @@ import {
   QueueStatus,
 } from '../../contracts/enums';
 
-import RetrievalStore from '../storage/typed/retrieval_store';
-
 const debug = new Debug('executor:receiver');
 
 export default class Receiver {
 
   constructor(queue) {
     this.queue = new Queue();
+    this.waiter = new Waiter();
     this.store = new RetrievalStore();
     this.status = QueueStatus.PENDING;
   }
@@ -33,6 +34,7 @@ export default class Receiver {
     if(this.status === QueueStatus.PENDING) {
 
       this.queue.start();
+      this.waiter.start();
 
       debug('STARTING');
 
@@ -85,19 +87,26 @@ export default class Receiver {
           return this.actualizeRetrievals(retrievals);
         })
         .then((retrievals) => {
-          return this.actualizeParts(retrievals)
-            .then(() => {
-              return retrievals.filter(
-                item => item.status === RetrievalStatus.PROCESSING
-              );
-            });
-        })
-        .then((retrievals) => {
 
-          debug('ACTIVE %s retrievals', retrievals.length);
+          if(retrievals.length === 0) return retrievals;
 
-          retrievals.forEach(this.queueRetrieval.bind(this));
-          this.initPendingHandler();
+          const pending = retrievals.filter(item =>
+            item.status === RetrievalStatus.PENDING
+          );
+
+          if(pending.length > 0) {
+            debug('PENDING %s retrievals', pending.length);
+            retrievals.forEach(this.processRetrieval.bind(this));
+          }
+
+          const processing = retrievals.filter(item =>
+            item.status === RetrievalStatus.PROCESSING
+          );
+
+          if(processing.length > 0) {
+            debug('ACTIVE %s retrievals', processing.length);
+            retrievals.forEach(this.download.bind(this));
+          }
 
           debug('INIT DONE');
 
@@ -122,7 +131,10 @@ export default class Receiver {
 
     this.status = QueueStatus.PENDING;
 
-    return this.queue.stop()
+    return Promise.all([
+      this.queue.stop(),
+      this.waiter.stop(),
+    ])
       .then(() => {
         return this.store.close();
       })
@@ -144,7 +156,7 @@ export default class Receiver {
         return this.store.create(retrieval);
       })
       .then((retrieval) => {
-        this.initPendingHandler();
+        this.processRetrieval(retrieval);
         return retrieval;
       });
 
@@ -158,7 +170,10 @@ export default class Receiver {
 
     return this.store.update(retrieval)
       .then((retrieval) => {
-        return this.queue.remove(retrieval);
+        return Promise.all([
+          this.queue.remove(retrieval),
+          this.waiter.remove(retrieval),
+        ]);
       })
       .then(() => {
         return this.store.remove(retrieval);
@@ -168,13 +183,16 @@ export default class Receiver {
   restart(retrieval) {
     debug('RESTART RETRIEVAL (%s)', retrieval.description);
 
-    return this.queue.remove(retrieval)
+    return Promise.all([
+      this.queue.remove(retrieval),
+      this.waiter.remove(retrieval),
+    ])
       .then((retrieval) => {
         retrieval.status = RetrievalStatus.PENDING;
         return this.store.update(retrieval);
       })
       .then((retrieval) => {
-        this.initPendingHandler();
+        this.processRetrieval(retrieval);
         return retrieval;
       });
   }
@@ -226,41 +244,35 @@ export default class Receiver {
       });
   }
 
-  actualizeParts(retrievals) {
+  processRetrieval(retrieval) {
+    return this.waiter.push(
+      glacier.describeRetrieval.bind(null, retrieval),
+      {status: RetrievalStatus.PROCESSING},
+      {reference: retrieval.id},
+    )
+      .then(this.download.bind(this))
+      .catch((error) => {
 
-    return this.store.listParts()
-      .then((parts) => {
+        debug('ERROR (retrieval: %s): %O', retrieval.description);
 
-        debug('ACTUALIZE %s parts', parts.length);
+        dialog.showErrorBox('Download error',
+          `There was an error with ${retrieval.description} operation:
+          ${error.toString()}`
+        );
 
-        return Promise.all(
-          parts.filter(
-            item => retrievals.some(
-              retrieval => retrieval.id === item.parentId
-            ) === false
-          ).map(part => this.store.removePart(part))
-        )
-          .then((deleted) => {
-
-            debug('REMOVED %s corrupted parts', deleted.length);
-
-            return parts.filter(
-              item => deleted.includes(item.id) === false
-            );
-          });
-
+        retrieval.setError(error);
+        return this.store.update(retrieval);
       });
-
   }
 
-  queueRetrieval(retrieval) {
+  download(retrieval) {
 
-    debug('QUEUE retrieval (id: %s)', retrieval.description);
+    debug('QUEUE retrieval', retrieval.description);
 
     const dirname = path.dirname(retrieval.filePath);
 
-    if(!fs.existsSync(dirname)){
-      fs.mkdirSync(dirname);
+    if(!fs.existsSync(dirname)) {
+      mkdirp.sync(dirname);
     }
 
     try {
@@ -352,98 +364,6 @@ export default class Receiver {
       });
   }
 
-  initPendingHandler() {
-    if(this.status === QueueStatus.PENDING) {
-
-      this.status = QueueStatus.PROCESSING;
-
-      const handler = () => {
-
-        return this.store.find({status: RetrievalStatus.PENDING})
-          .then((retrievals) => {
-
-            debug('REQUESTING %s retrievals', retrievals.length);
-
-            return Promise.all(
-              retrievals.map(this.requestRetrievalStatus.bind(this))
-            );
-
-          })
-          .then((retrievals) => {
-            const processing = retrievals.filter(
-              item => item.status === RetrievalStatus.PROCESSING
-            );
-
-            const pending = retrievals.filter(
-              item => item.status === RetrievalStatus.PENDING
-            );
-
-            if(processing.length > 0) {
-              debug('QUEUE %s retrievals', retrievals.length);
-
-              return Promise.all(
-                processing.map(this.queueRetrieval.bind(this))
-              ).then(() => pending);
-            }
-
-            return pending;
-
-          })
-          .then((retrievals) => {
-            debug('PENDING %s retrievals', retrievals.length);
-
-            if(this.status === QueueStatus.PROCESSING && retrievals.length) {
-              setTimeout(
-                handler.bind(this),
-                Transfer.STATUS_INTERVAL
-              );
-            } else {
-              this.status = QueueStatus.PENDING;
-            }
-          });
-      };
-
-      handler();
-    }
-  }
-
-  requestRetrievalStatus(retrieval) {
-
-    return this.queue.push(
-      glacier.describeRetrieval.bind(null, retrieval),
-      RequestType.GENERAL,
-      retrieval.id
-    )
-      .then((response) => {
-
-        debug(
-          'STATUS %s (status: %s)',
-          retrieval.description, response.status
-        );
-
-        if(retrieval.status !== response.status) {
-          return this.store.update(response);
-        }
-
-        return retrieval;
-      })
-      .catch((error) => {
-
-        debug('RETRIEVAL ERROR (%s): %O',
-          retrieval.description, error
-        );
-
-        dialog.showErrorBox('Request error',
-          `There was an error with ${retrieval.description} operation:
-          ${error.toString()}`
-        );
-
-        retrieval.setError(error);
-        return this.store.update(retrieval);
-
-      });
-  }
-
   syncInventory(inventory) {
 
     debug('ACTUALIZE RETRIEVALS %s', inventory.vaultName);
@@ -462,7 +382,7 @@ export default class Receiver {
           );
 
         return Promise.all(
-          deleted.map(this.removeRetrieval.bind(this))
+          deleted.map(item => this.store.remove(item))
         );
       });
 
