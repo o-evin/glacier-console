@@ -12,6 +12,8 @@ import {
   RetrievalStatus,
 } from '../../contracts/enums';
 
+import {HandledRejectionError} from '../../contracts/errors';
+
 const debug = new Debug('executor:inventorizer');
 
 export default class Inventorizer {
@@ -26,10 +28,11 @@ export default class Inventorizer {
   start() {
     if(this.status === QueueStatus.PENDING) {
 
+      debug('STARTING');
       this.queue.start();
       this.waiter.start();
 
-      debug('STARTING');
+      this.status = QueueStatus.PROCESSING;
 
       return this.actualizeStore()
         .then(() => {
@@ -38,15 +41,14 @@ export default class Inventorizer {
         .then((retrievals) => {
 
           debug('ACTIVE %s retrievals', retrievals.length);
-
-          if(retrievals.length > 0) {
-            retrievals.forEach(this.processRetrieval.bind(this));
-          }
+          retrievals.forEach(item => this.processRetrieval(item));
 
           debug('INIT DONE');
 
         })
         .catch((error) => {
+
+          if(error instanceof HandledRejectionError) return;
 
           debug('APP ERROR');
 
@@ -67,8 +69,11 @@ export default class Inventorizer {
       {status: RetrievalStatus.PROCESSING},
       {reference: retrieval.id},
     )
-      .then(this.retrieveInventory.bind(this))
+      .then(retrieval => this.retrieveInventory(retrieval))
       .catch((error) => {
+
+        if(error instanceof HandledRejectionError) return;
+
         debug('INVENTORY ERROR (id: %s): %O',
           retrieval.description, error
         );
@@ -113,7 +118,7 @@ export default class Inventorizer {
 
     debug('NEW REQUEST', vault.name);
 
-    this.store.findOneRetrieval({vaultName: vault.name})
+    return this.store.findOneRetrieval({vaultName: vault.name})
       .then((retrieval) => {
 
         if(retrieval) {
@@ -175,9 +180,11 @@ export default class Inventorizer {
 
               debug('ACTUALIZE %s retrievals', retrievals.length);
 
-              return this.queue.push(vaults.map(
-                vault => glacier.listRetrievals.bind(null, vault)
-              ))
+              return this.queue.push(
+                vaults.map(
+                  vault => glacier.listRetrievals.bind(null, vault)
+                )
+              )
                 .then((results) => {
                   const jobs = [].concat(...results);
 
@@ -242,7 +249,9 @@ export default class Inventorizer {
               debug('REFRESH %s inventories', outdated.length);
 
               return Promise.all(
-                outdated.map(this.requestInventory.bind(this))
+                outdated.map(
+                  item => this.requestInventory(item)
+                )
               );
 
             }),
@@ -288,6 +297,8 @@ export default class Inventorizer {
         return this.store.removeRetrieval(retrieval);
       })
       .catch((error) => {
+
+        if(error instanceof HandledRejectionError) return;
 
         debug('INVENTORY ERROR (id: %s): %O',
           retrieval.description, error

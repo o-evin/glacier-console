@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "eslint ./source --ext .js --ext .jsx --ext .json",
     "pack": "./scripts/pack.sh",
-    "start": "node --require babel-register ./scripts/start.js",
-    "build": "node --require babel-register ./scripts/build.js",
+    "start": "node --harmony --require babel-register ./scripts/start.js",
+    "build": "node --harmony --require babel-register ./scripts/build.js",
     "electron": "DEBUG=executor:* electron ."
   },
   "repository": {
@@ -38,6 +38,7 @@
     "debug": "^3.0.0",
     "history": "^4.6.3",
     "http-status-codes": "^1.2.0",
+    "junk": "^2.1.0",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.18.1",
@@ -51,6 +52,7 @@
     "react-router-redux": "^5.0.0-alpha.6",
     "redux": "^3.7.2",
     "redux-thunk": "^2.2.0",
+    "string": "^3.3.3",
     "uuid": "^3.1.0"
   },
   "devDependencies": {

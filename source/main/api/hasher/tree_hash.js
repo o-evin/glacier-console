@@ -171,7 +171,7 @@ export default class TreeHash {
       var partsCount = Math.ceil(length / PART_SIZE);
     } else {
       const stats = fs.statSync(filePath);
-      partsCount = Math.ceil(stats.length / PART_SIZE);
+      partsCount = Math.ceil(stats.size / PART_SIZE);
     }
 
     const tree = new DigestTree(partsCount);

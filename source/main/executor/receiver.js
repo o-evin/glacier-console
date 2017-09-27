@@ -12,12 +12,13 @@ import RetrievalStore from '../storage/typed/retrieval_store';
 import {glacier} from '../api';
 
 import {
-  PartStatus,
   RequestType,
   RetrievalAction,
   RetrievalStatus,
   QueueStatus,
 } from '../../contracts/enums';
+
+import {HandledRejectionError} from '../../contracts/errors';
 
 const debug = new Debug('executor:receiver');
 
@@ -33,10 +34,12 @@ export default class Receiver {
   start() {
     if(this.status === QueueStatus.PENDING) {
 
+      debug('STARTING');
+
       this.queue.start();
       this.waiter.start();
 
-      debug('STARTING');
+      this.status = QueueStatus.PROCESSING;
 
       return this.store.list()
         .then((retrievals) => {
@@ -44,28 +47,6 @@ export default class Receiver {
           if(!retrievals.length) return retrievals;
 
           debug('FOUND %s retrievals', retrievals.length);
-
-          const interrupted = retrievals.filter(
-            item => item.status === RetrievalStatus.HOLD
-          );
-
-          if(interrupted.length === 0) return retrievals;
-
-          debug('INTERRUPTED %s retrievals', interrupted.length);
-
-          return Promise.all(
-            interrupted.map(item => item.setError('Operation aborted.'))
-              .map(item => this.store.update(item))
-          ).then((updates) => {
-            return retrievals.filter(
-              item => updates.some(update => update.id === item.id) === false
-            ).concat(updates);
-          });
-
-        })
-        .then((retrievals) => {
-
-          if(!retrievals.length) return retrievals;
 
           return Promise.all(
             retrievals.filter(
@@ -96,7 +77,7 @@ export default class Receiver {
 
           if(pending.length > 0) {
             debug('PENDING %s retrievals', pending.length);
-            retrievals.forEach(this.processRetrieval.bind(this));
+            pending.forEach(item => this.processRetrieval(item));
           }
 
           const processing = retrievals.filter(item =>
@@ -105,13 +86,15 @@ export default class Receiver {
 
           if(processing.length > 0) {
             debug('ACTIVE %s retrievals', processing.length);
-            retrievals.forEach(this.download.bind(this));
+            processing.forEach(item => this.download(item));
           }
 
           debug('INIT DONE');
 
         })
         .catch((error) => {
+
+          if(error instanceof HandledRejectionError) return;
 
           debug('APP ERROR');
 
@@ -145,16 +128,9 @@ export default class Receiver {
 
   push(retrieval) {
 
-    const parts = retrieval.getParts();
+    debug('PUSH RETRIEVAL %s', retrieval.description);
 
-    debug('PUSH RETRIEVAL %s (%s parts)', retrieval.description, parts.length);
-
-    return Promise.all(parts.map(
-      item => this.store.createPart(item)
-    ))
-      .then(() => {
-        return this.store.create(retrieval);
-      })
+    return this.store.create(retrieval)
       .then((retrieval) => {
         this.processRetrieval(retrieval);
         return retrieval;
@@ -163,18 +139,9 @@ export default class Receiver {
   }
 
   remove(retrieval) {
-
     debug('DELETE RETRIEVAL', retrieval.description);
 
-    retrieval.status = RetrievalStatus.HOLD;
-
-    return this.store.update(retrieval)
-      .then((retrieval) => {
-        return Promise.all([
-          this.queue.remove(retrieval),
-          this.waiter.remove(retrieval),
-        ]);
-      })
+    return this.stopRetrieval(retrieval)
       .then(() => {
         return this.store.remove(retrieval);
       });
@@ -183,11 +150,8 @@ export default class Receiver {
   restart(retrieval) {
     debug('RESTART RETRIEVAL (%s)', retrieval.description);
 
-    return Promise.all([
-      this.queue.remove(retrieval),
-      this.waiter.remove(retrieval),
-    ])
-      .then((retrieval) => {
+    return this.stopRetrieval(retrieval)
+      .then(() => {
         retrieval.status = RetrievalStatus.PENDING;
         return this.store.update(retrieval);
       })
@@ -195,6 +159,14 @@ export default class Receiver {
         this.processRetrieval(retrieval);
         return retrieval;
       });
+  }
+
+  stopRetrieval(retrieval) {
+    debug('STOP RETRIEVAL (%s)', retrieval.description);
+    return Promise.all([
+      this.queue.remove(retrieval),
+      this.waiter.remove(retrieval),
+    ]).then(() => retrieval);
   }
 
   subscribe(listener) {
@@ -250,15 +222,12 @@ export default class Receiver {
       {status: RetrievalStatus.PROCESSING},
       {reference: retrieval.id},
     )
-      .then(this.download.bind(this))
+      .then(retrieval => this.download(retrieval))
       .catch((error) => {
 
-        debug('ERROR (retrieval: %s): %O', retrieval.description);
+        if(error instanceof HandledRejectionError) return;
 
-        dialog.showErrorBox('Download error',
-          `There was an error with ${retrieval.description} operation:
-          ${error.toString()}`
-        );
+        debug('ERROR (retrieval: %s): %O', retrieval.description, error);
 
         retrieval.setError(error);
         return this.store.update(retrieval);
@@ -266,101 +235,98 @@ export default class Receiver {
   }
 
   download(retrieval) {
-
     debug('QUEUE retrieval', retrieval.description);
 
-    const dirname = path.dirname(retrieval.filePath);
+    const {filePath, archiveSize} = retrieval;
+
+    const dirname = path.dirname(filePath);
 
     if(!fs.existsSync(dirname)) {
       mkdirp.sync(dirname);
     }
 
     try {
-      var stats = fs.statSync(retrieval.filePath);
+      var stats = fs.statSync(filePath);
     } catch(error) {
       stats = null;
     }
 
-    if(!stats || stats.size !== retrieval.archiveSize) {
-      const fd = fs.openSync(retrieval.filePath, 'w');
-      fs.writeSync(fd, Buffer.alloc(retrieval.archiveSize));
+    if(!stats || stats.size !== archiveSize) {
+      const fd = fs.openSync(filePath, 'w');
+      fs.writeSync(fd, Buffer.alloc(archiveSize));
     }
 
-    return this.store.findParts({parentId: retrieval.id})
-      .then((parts) => {
-        return Promise.all(
-          parts.map(this.downloadPart.bind(this))
-        );
-      })
-      .then((parts) => {
+    return this.downloadMultipart(retrieval)
+      .then(() => {
 
-        debug('DOWNLOAD DONE (%s parts)', parts.length);
-
-        const checksum = TreeHash.from(
-          parts.sort((a, b) => a.position - b.position)
-            .map(item => item.checksum)
-        );
+        const checksum = TreeHash.from(retrieval.filePath);
 
         if(retrieval.checksum !== checksum) {
-
           debug('CHECKSUM MISMATCH (%s)', retrieval.description);
-
           throw new Error('Checksum mismatch.');
         }
 
-        debug('RETRIEVAL DONE (%s)', retrieval.description);
+        debug('RETRIEVAL DONE', retrieval.description);
 
         retrieval.status = RetrievalStatus.DONE;
         return this.store.update(retrieval);
       })
       .catch((error) => {
 
-        debug('ERROR (retrieval: %s): %O', retrieval.description);
+        if(error instanceof HandledRejectionError) return;
 
-        dialog.showErrorBox('Download error',
-          `There was an error with ${retrieval.description} operation:
-          ${error.toString()}`
-        );
+        debug('ERROR (retrieval: %s): %O', retrieval.description, error);
+
+        this.stopRetrieval(retrieval);
 
         retrieval.setError(error);
         return this.store.update(retrieval);
       });
   }
 
-  downloadPart(part) {
+  downloadMultipart(retrieval) {
+    debug('DOWNLOAD MULTIPART', retrieval.description, retrieval.position);
 
-    if(part.status === PartStatus.DONE) {
-      return Promise.resolve(part);
-    }
+    const parts = retrieval.getPendingParts();
+    debug('QUEUE %s parts for', parts.length, retrieval.description);
 
-    debug('DOWNLOAD PART (id: %s)', part.id);
+    return Promise.all(
+      parts.map(part =>
+        this.downloadPart(retrieval, part)
+          .then((part) => {
+            debug('ADD SEQUENCE %s for', part.position, retrieval.description);
+            retrieval.addSequence(part.position);
+            return this.store.update(retrieval);
+          })
+      )
+    );
+  }
 
-    return this.store.get(part.parentId)
-      .then((retrieval) => {
+  downloadPart(retrieval, part) {
 
-        return this.queue.push(
-          glacier.getRetrievalOutput.bind(null, {retrieval, part}), {
-            type: RequestType.DOWNLOAD_PART, reference: part.parentId,
-          }
-        )
-          .then((data) => {
+    debug('DOWNLOAD RANGE', retrieval.description, part.range);
 
-            const checksum = TreeHash.from(data.body);
+    return this.queue.push(glacier.getRetrievalOutput, {
+      type: RequestType.DOWNLOAD_PART,
+      reference: part.parentId,
+      params: [{retrieval, part}],
+    })
+      .then((data) => {
 
-            if(!data || checksum !== data.checksum) {
-              throw new Error('Checksum mismatch.');
-            }
+        part.checksum = TreeHash.from(data.body);
 
-            const fd = fs.openSync(retrieval.filePath, 'r+');
-            fs.writeSync(fd, data.body, 0, part.size, part.position);
+        if(part.checksum !== data.checksum) {
+          throw new Error('Checksum mismatch.');
+        }
 
-            debug('PART DONE (id: %s)', part.id);
+        const fd = fs.openSync(retrieval.filePath, 'r+');
+        fs.writeSync(fd, data.body, 0, part.size, part.position);
 
-            part.checksum = checksum;
-            part.status = PartStatus.DONE;
+        data.body = null;
 
-            return this.store.updatePart(part);
-          });
+        debug('RANGE DONE', retrieval.description, part.range);
+
+        return part;
       });
   }
 

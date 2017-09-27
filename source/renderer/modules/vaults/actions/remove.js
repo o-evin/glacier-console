@@ -38,7 +38,7 @@ export default function removeVault(vault, navigateOnSuccess) {
             'there have been no writes to the vault since the last ' +
             'inventory. \n\n' +
             'Please ensure there are no archives in the vault and wait for ' +
-            'the next inventory before delete the vault.';
+            'the next remote inventory to proceed.'; 
         }
 
         alert(message);

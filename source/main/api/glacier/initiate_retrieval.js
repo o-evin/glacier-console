@@ -2,14 +2,13 @@ import aws from './aws';
 
 import {Retrieval} from '../../../contracts/entities';
 import {
-  RetrievalTier,
   RetrievalType,
   RetrievalAction,
   RetrievalStatus,
 } from '../../../contracts/enums';
 
 export default function initiateRetrieval({vaultName, archiveId, filePath,
-  description, tier = RetrievalTier.STANDARD, partSize, archiveSize}) {
+  description, tier, partSize, archiveSize, checksum}) {
 
   if(!partSize || partSize <= 0) {
     throw new Error('Part size is required.');
@@ -21,6 +20,10 @@ export default function initiateRetrieval({vaultName, archiveId, filePath,
 
   if(!archiveId || archiveId.length <= 0) {
     throw new Error('Archive ID is required.');
+  }
+
+  if(!checksum || checksum.length <= 0) {
+    throw new Error('Archive checksum is required.');
   }
 
   return new Promise((resolve, reject) => {
@@ -44,6 +47,7 @@ export default function initiateRetrieval({vaultName, archiveId, filePath,
         vaultName,
         partSize,
         filePath,
+        checksum,
         archiveSize,
         description,
         id: data.jobId,

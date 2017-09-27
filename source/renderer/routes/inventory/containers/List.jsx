@@ -74,8 +74,6 @@ class ListInventory extends PureComponent {
   }
 
   renderFolder({name, uploads, archives, retrievals}) {
-    const {uploadStats, retrievalStats} = this.props;
-
     return (
       <ViewFolder
         key={name}
@@ -83,8 +81,6 @@ class ListInventory extends PureComponent {
         uploads={uploads}
         archives={archives}
         retrievals={retrievals}
-        uploadStats={uploadStats}
-        retrievalStats={retrievalStats}
         onSelect={this.selectFolder.bind(this)}
       />
     );
@@ -105,14 +101,12 @@ class ListInventory extends PureComponent {
   }
 
   renderUpload(upload) {
-    const {uploadStats, prefix} = this.props;
-    const stats = uploadStats && uploadStats.get(upload.id);
+    const {prefix} = this.props;
 
     return (
       <ViewUpload
         key={upload.id}
         prefix={prefix}
-        stats={stats}
         value={upload}
         onRemove={this.props.removeUpload}
         onRestart={this.props.restartUpload}
@@ -135,13 +129,11 @@ class ListInventory extends PureComponent {
   }
 
   renderRetrieval(retrieval) {
-    const {retrievalStats, prefix} = this.props;
-    const stats = retrievalStats && retrievalStats.get(retrieval.id);
+    const {prefix} = this.props;
 
     return (
       <ViewRetrieval
         key={retrieval.id}
-        stats={stats}
         prefix={prefix}
         value={retrieval}
         onShow={this.showRetrieval.bind(this)}
@@ -236,17 +228,15 @@ function mapStateToProps(state, props) {
   const {vaultName, prefix} = props.match.params;
   const {archives} = state.inventory;
 
-  const {stats: uploadStats, list: uploads} = state.uploads;
-  const {stats: retrievalStats, list: retrievals} = state.retrievals;
+  const {list: uploads} = state.uploads;
+  const {list: retrievals} = state.retrievals;
 
   return {
     prefix,
     vaultName,
     uploads,
-    uploadStats,
-    retrievals,
-    retrievalStats,
     archives,
+    retrievals,
   };
 }
 

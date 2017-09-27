@@ -1,13 +1,11 @@
 import {ActionType} from '../../../contracts/enums';
-import {Retrieval, Part} from '../../../contracts/entities';
+import {Retrieval} from '../../../contracts/entities';
 
 const actions = {
   create: ActionType.RETRIEVAL_CREATE_SUCCESS,
   update: ActionType.RETRIEVAL_UPDATE_SUCCESS,
   remove: ActionType.RETRIEVAL_DELETE_SUCCESS,
   list: ActionType.RETRIEVAL_LIST_SUCCESS,
-  updatePart: ActionType.RETRIEVAL_PART_UPDATE_SUCCESS,
-  listParts: ActionType.RETRIEVAL_PART_LIST_SUCCESS,
 };
 
 import Dispatcher from './dispatcher';
@@ -21,13 +19,11 @@ export default class RetrievalStore extends Dispatcher {
   }
 
   reset() {
-    return this.indexed.reset('RetrievalParts')
-      .then(() => this.indexed.reset('Retrievals'));
+    return this.indexed.reset('Retrievals');
   }
 
   close() {
-    return this.indexed.close('RetrievalParts')
-      .then(() => this.indexed.close('Retrievals'));
+    return this.indexed.close('Retrievals');
   }
 
   subscribe(dispatch) {
@@ -47,15 +43,7 @@ export default class RetrievalStore extends Dispatcher {
   }
 
   remove(value) {
-    return this.findParts({parentId: value.id})
-      .then((parts) => {
-        return Promise.all(parts.map(
-          item => this.removePart(item)
-        ));
-      })
-      .then(() => {
-        return this.indexed.remove('Retrievals', value.id);
-      });
+    return this.indexed.remove('Retrievals', value.id);
   }
 
   get(id) {
@@ -80,37 +68,6 @@ export default class RetrievalStore extends Dispatcher {
     const [value] = Object.values(criterion);
     return this.indexed.findBy('Retrievals', key, value)
       .then(data => data && new Retrieval(data));
-  }
-
-  createPart(value) {
-    return this.indexed.create('RetrievalParts', value)
-      .then(data => new Part(data));
-  }
-
-  updatePart(value) {
-    return this.indexed.update('RetrievalParts', value)
-      .then(data => new Part(data));
-  }
-
-  getPart(id) {
-    return this.indexed.get('RetrievalParts', id)
-      .then(data => data && new Part(data));
-  }
-
-  listParts() {
-    return this.indexed.list('RetrievalParts')
-      .then(data => data.map(item => new Part(item)));
-  }
-
-  findParts(criterion) {
-    const [key] = Object.keys(criterion);
-    const [value] = Object.values(criterion);
-    return this.indexed.getMany('RetrievalParts', key, value)
-      .then(data => data.map(item => new Part(item)));
-  }
-
-  removePart(value) {
-    return this.indexed.remove('RetrievalParts', value.id);
   }
 
 }

@@ -53,3 +53,7 @@ if(creds && creds.key && creds.secret) {
 } else {
   render();
 }
+
+if (module.hot) {
+  module.hot.accept();
+}

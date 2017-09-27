@@ -1,54 +1,36 @@
 import Debug from 'debug';
-import ObservableCounter from './counter';
+import Waiter from './waiter';
+import Counter from './counter';
 
 import {QueueJob} from '../../contracts/entities';
 import {Transfer, Time} from '../../contracts/const';
 import {RequestType, QueueStatus} from '../../contracts/enums';
-import {HandledRejectError, QueueRejectError} from '../../contracts/errors';
+import {QueueRejectError, HandledRejectionError} from '../../contracts/errors';
 
 const debug = new Debug('executor:queue');
 
 export default class Queue {
 
   constructor(options = {requestRate: Transfer.REQUEST_RATE}) {
-
     this.queue = [];
-    this.running = new Map();
+    this.running = [];
     this.status = QueueStatus.PENDING;
 
-    this.counter = new ObservableCounter();
+    this.counter = new Counter();
 
     this.interval = null;
     this.intervalPeriod = Time.SECOND_IN_MILISECONDS / options.requestRate;
   }
 
   next() {
-    const item = this.queue.shift();
+    const next = this.queue.find(
+      item => this.counter.getSlots(item.type) > 0
+    );
 
-    if(this.isLimitExceeded(item.type)) {
-      return this.queue.push(item);
+    if(next) {
+      this.queue.splice(this.queue.indexOf(next), 1);
+      this.runner(next);
     }
-
-    item.run();
-  }
-
-  isLimitExceeded(type) {
-
-    if(type === RequestType.GENERAL) {
-      return false;
-    }
-
-    if(type === RequestType.UPLOAD_PART) {
-      const {maximumActiveParts} = global.config.get('transfer');
-      return this.counter.get(type) >= maximumActiveParts;
-    }
-
-    if(type === RequestType.DOWNLOAD_PART) {
-      const {maximumActiveParts} = global.config.get('transfer');
-      return this.counter.get(type) >= maximumActiveParts;
-    }
-
-    return false;
   }
 
   initInterval() {
@@ -70,144 +52,114 @@ export default class Queue {
     }
 
     const {
+      params,
+      context,
       type = RequestType.GENERAL,
       reference = RequestType.GENERAL,
     } = options;
 
     const jobs = [].concat(handlers).map(
-      handler => new QueueJob({handler, type, reference})
+      handler => new QueueJob({handler, type, reference, params, context})
     );
+
+    this.queue.push(...jobs);
 
     this.initInterval();
 
     return Promise.all(
-      jobs.map(this.deferred.bind(this))
-    ).then((response) => {
-      return Array.isArray(handlers) ? response : response.shift();
+      jobs.map(job => this.deferred(job))
+    )
+      .then((response) => {
+        jobs.length = 0;
+        return Array.isArray(handlers) ? response : response.shift();
+      })
+      .catch((error) => {
+        throw error;
+      });
+  }
+
+  deferred(job) {
+    return new Promise((resolve, reject) => {
+      job.resolve = resolve;
+      job.reject = reject;
     });
   }
 
-  deferred(job, attempt = 0) {
+  runner(job, attempt = 0) {
+    debug('RUNNING %s (type: %s)', job.handler.name, job.type);
 
-    return new Promise((resolve, reject) => {
+    if(attempt === 0) {
+      this.counter.add(job.type);
+      this.running.push(job);
+    }
 
-      job.run = () => {
-        debug('RUNNING %s (type: %s)',
-          job.handler.name, job.type
-        );
+    const {handler, context, params} = job;
 
-        if(attempt === 0) {
-          this.counter.add(job);
-          this.running.set(job.id, job);
+    return Promise.race([
+      handler.apply(context, params),
+      new Promise((resolve, reject) =>
+        job.cancel = () => reject(new HandledRejectionError())
+      ),
+    ])
+      .then(job.resolve)
+      .catch((error) => {
+
+        if(!(error instanceof HandledRejectionError)) {
+          debug('ERROR %s (type: %s, reference: %s): %O',
+            handler.name, job.type, job.reference, error
+          );
+
+          if(++attempt <= Transfer.QUEUE_RETRY_ATTEMPTS) {
+            debug('RETRY %s attempt %s (type: %s, reference: %s)',
+              handler.name, attempt, job.type, job.reference
+            );
+
+            return this.runner(job, attempt);
+          }
+        } else {
+          debug('CANCELLED %s (type: %s)', handler.name, job.type);
         }
 
-        this.execute(job)
-          .then(resolve)
-          .catch((error) => {
-            if(!(error instanceof HandledRejectError)) {
-
-              debug('ERROR %s (type: %s, reference: %s): %O',
-                job.handler.name, job.type, job.reference, error
-              );
-
-              if(attempt <= Transfer.QUEUE_RETRY_ATTEMPTS) {
-                debug('RETRY %s attempt %s (type: %s, reference: %s)',
-                  job.handler.name, attempt, job.type, job.reference
-                );
-
-                return this.deferred(job, ++attempt);
-              }
-
-              reject(error);
-            }
-          })
-          .then(() => {
-            if(attempt === 0) {
-              this.counter.remove(job);
-              this.running.delete(job.id);
-            }
-          });
-      };
-
-      this.queue.push(job);
-
-    });
-  }
-
-  execute(job) {
-
-    return new Promise((resolve, reject) => {
-      let isCancelled = false;
-
-      job.cancel = () => {
-        debug('CANCELLED  %s (type: %s)', job.handler.name, job.type);
-        isCancelled = true;
-        reject(new HandledRejectError());
-      };
-
-      return job.handler()
-        .then((response) => {
-          if(!isCancelled) {
-            debug('DONE %s (type: %s)', job.handler.name, job.type);
-            resolve(response);
-          }
-        })
-        .catch((error) => {
-          if(!isCancelled) {
-            reject(error);
-          }
-        });
-    });
-
+        job.reject(error);
+      })
+      .then(() => {
+        if(attempt === 0) {
+          this.counter.remove(job.type);
+          this.running.splice(this.running.indexOf(job), 1);
+        }
+      });
   }
 
   remove(entry) {
-    return new Promise((resolve, reject) => {
-      const reference = entry === Object(entry) ? entry.id : entry;
 
-      this.queue = this.queue.filter(
-        item => item.reference !== reference
-      );
+    const reference = entry === Object(entry) ? entry.id : entry;
 
-      if(this.counter.get(reference)) {
-        const unsubscribe = this.counter.subscribe(() => {
-          if(!this.counter.get(reference)) {
-            unsubscribe();
-            resolve();
-          }
-        });
+    this.queue = this.queue.filter(
+      item => item.reference !== reference
+    );
 
-        this.running.forEach(
-          job => job.reference === reference && job.cancel()
-        );
+    this.running.forEach(
+      item => item.reference === reference && item.cancel()
+    );
 
-      } else {
-        resolve();
-      }
-    });
+    return new Waiter({timeout: this.intervalPeriod}).push(
+      () => Promise.resolve(this.running.filter(
+        item => item.reference === reference
+      )),
+      {length: 0}
+    );
   }
 
   stop() {
     this.status = QueueStatus.PENDING;
     this.queue.length = 0;
 
-    return new Promise((resolve, reject) => {
+    this.running.forEach(item => item.cancel());
 
-      if(!this.counter.isEmpty()) {
-        const unsubscribe = this.counter.subscribe(() => {
-          if(this.counter.isEmpty()) {
-            unsubscribe();
-            resolve();
-          }
-        });
-
-        this.running.forEach(job => job.cancel());
-
-      } else {
-        resolve();
-      }
-
-    });
+    return new Waiter({timeout: this.intervalPeriod}).push(
+      () => Promise.resolve(this.running),
+      {length: 0}
+    );
   }
 
   start() {
@@ -215,7 +167,7 @@ export default class Queue {
   }
 
   isProcessing() {
-    return this.queue.length > 0 || this.running.size > 0;
+    return this.queue.length > 0 || this.running.length > 0;
   }
 
 }

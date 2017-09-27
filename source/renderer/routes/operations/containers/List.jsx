@@ -40,7 +40,7 @@ class OperationsContainer extends PureComponent {
     return (
       <ListOperations
         uploads={uploads}
-        retrievals={retrievals.concat(inventoryRequests)}
+        retrievals={[].concat(retrievals, inventoryRequests)}
         onRemove={this.remove.bind(this)}
         onRestart={this.restart.bind(this)}
       />

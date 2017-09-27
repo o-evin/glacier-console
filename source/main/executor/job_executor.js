@@ -93,6 +93,7 @@ export default class JobExecutor {
       vaultName,
       tier: tier,
       archiveId: archive.id,
+      checksum: archive.checksum,
       description: archive.description,
       partSize: partSizeInBytes,
       archiveSize: archive.size,

@@ -13,7 +13,6 @@ import {
 export default class ViewRetrieval extends PureComponent {
 
   static propTypes = {
-    stats: PropTypes.array,
     prefix: PropTypes.string,
     value: PropTypes.instanceOf(Retrieval),
     onShow: PropTypes.func.isRequired,
@@ -58,8 +57,8 @@ export default class ViewRetrieval extends PureComponent {
               <span className="align-middle">
                 <i className="fa fa-clock-o fa-lg ml-2 text-warning" title={
                   'This retrieval has been successfully submitted and is ' +
-                  'awaiting for a data preparation. The process will resume ' +
-                  'once the data is ready.'}
+                  'awaiting for its data preparation. The process will ' +
+                  'resume once the data is ready.'}
                 />
               </span>
             }
@@ -76,18 +75,15 @@ export default class ViewRetrieval extends PureComponent {
     );
   }
 
-  renderProcessing(retrieval, stats) {
+  renderProcessing(retrieval) {
 
     const {prefix} = this.props;
+
     const description = prefix ?
       retrieval.description.slice(prefix.length + 1) :
       retrieval.description;
 
-    const {archiveSize, partSize} = retrieval;
-
-    const doneParts = stats ? stats.length : 0;
-    const totalParts = Math.ceil(archiveSize / partSize);
-    const completion = Math.round((doneParts / totalParts) * 100);
+    const {completion} = retrieval;
 
     return (
       <li className="list-group-item p-1">
@@ -116,17 +112,14 @@ export default class ViewRetrieval extends PureComponent {
     );
   }
 
-  renderError(retrieval, stats) {
+  renderError(retrieval) {
     const {prefix} = this.props;
+
     const description = prefix ?
       retrieval.description.slice(prefix.length + 1) :
       retrieval.description;
 
-    const {archiveSize, partSize, error} = retrieval;
-
-    const doneParts = stats ? stats.length : 0;
-    const totalParts = Math.ceil(archiveSize / partSize);
-    const completion = Math.round((doneParts / totalParts) * 100);
+    const {error, completion} = retrieval;
 
     return (
       <li className="list-group-item p-1" title={error}>
@@ -193,17 +186,16 @@ export default class ViewRetrieval extends PureComponent {
 
   render() {
 
-    const {value, stats} = this.props;
+    const {value} = this.props;
 
     if(value.status === RetrievalStatus.PROCESSING) {
-      return this.renderProcessing(value, stats);
+      return this.renderProcessing(value);
     } else if(value.status === RetrievalStatus.DONE) {
       return this.renderFinished(value);
     } else if(value.status === RetrievalStatus.ERROR) {
-      return this.renderError(value, stats);
+      return this.renderError(value);
     }
 
     return this.renderPending(value);
-
   }
 }

@@ -18,7 +18,21 @@ function compile() {
   console.log(chalk.cyan('Compiling project...'));
   console.log();
 
-  const compiler = webpack([main, renderer], (err, stats) => {
+  const options = {
+    quiet: true,
+    inline: true,
+    stats: {
+      colors: true,
+    },
+    host: 'localhost',
+    port: DEFAULT_PORT,
+    historyApiFallback: true,
+    contentBase: renderer.output.path,
+  };
+
+  WebpackDevServer.addDevServerEntrypoints(renderer, options);
+
+  const compiler = webpack([renderer, main], (err, stats) => {
 
     const json = stats.toJson();
 
@@ -56,15 +70,7 @@ function compile() {
     );
     console.log();
 
-    new WebpackDevServer(compiler.compilers[0], {
-      hot: true,
-      quiet: true,
-      watchOptions: {
-        ignored: /node_modules/,
-      },
-      historyApiFallback: true,
-      contentBase: renderer.output.path,
-    })
+    new WebpackDevServer(compiler.compilers.shift(), options)
       .listen(DEFAULT_PORT, (err, result) => {
         if (err) {
           return console.log(err);
@@ -83,9 +89,7 @@ function compile() {
         });
 
       });
-
   });
-
 }
 
 

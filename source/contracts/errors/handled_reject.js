@@ -1,10 +1,10 @@
-function HandledRejectError(message) {
-  this.name = 'HandledRejectError';
-  this.message = message || 'Oparation aborted';
+function HandledRejectionError(message) {
+  this.name = 'HandledRejectionError';
+  this.message = message || 'Operation cancelled';
   this.stack = (new Error()).stack;
 }
 
-HandledRejectError.prototype = Object.create(Error.prototype);
-HandledRejectError.prototype.constructor = HandledRejectError;
+HandledRejectionError.prototype = Object.create(Error.prototype);
+HandledRejectionError.prototype.constructor = HandledRejectionError;
 
-export default HandledRejectError;
+export default HandledRejectionError;

@@ -1,7 +1,6 @@
-import uuid from 'uuid';
 import {isNil} from  'lodash';
 import {Part} from '../entities';
-import {UploadStatus, PartStatus} from '../enums';
+import {UploadStatus} from '../enums';
 
 class Validator {
   constructor() {
@@ -20,6 +19,7 @@ class Validator {
                 value = new Date(value);
               }
               break;
+            case 'position':
             case 'partSize':
             case 'archiveSize':
               if (!Number.isInteger(value)) {
@@ -49,7 +49,6 @@ export default class Upload extends Validator {
     this.archiveId = raw.archiveId;
     this.partSize = raw.partSize;
     this.status = raw.status;
-    this.location = raw.location;
     this.filePath = raw.filePath;
     this.pathRoot = raw.pathRoot;
     this.vaultName = raw.vaultName;
@@ -60,29 +59,46 @@ export default class Upload extends Validator {
     this.description = raw.description;
     this.error = raw.error;
 
+    this.position = raw.position || 0;
+    this.completedSequences = raw.completedSequences || [];
   }
 
-  getParts() {
+  get completion() {
+    return Math.round((this.position / this.archiveSize) * 100);
+  }
+
+  getPendingParts() {
     const parts = [];
 
-    for (let pos = 0; pos < this.archiveSize; pos += this.partSize) {
+    let position = this.position;
 
-      const size = Math.min(this.partSize, this.archiveSize - pos);
-      const range = `bytes ${pos}-${pos + size - 1}/*`;
+    while(position < this.archiveSize) {
+      const size = Math.min(this.partSize, this.archiveSize - position);
 
-      const part = new Part({
-        id: uuid.v4(),
-        size: size,
-        range: range,
-        position: pos,
-        parentId: this.id,
-        status: PartStatus.PROCESSING,
-      });
+      if(this.completedSequences.indexOf(position) < 0) {
+        const range = `bytes ${position}-${position + size - 1}/*`;
+        parts.push(new Part({size, range, position}));
+      }
 
-      parts.push(part);
+      position += size;
     }
 
     return parts;
+  }
+
+  addSequence(position) {
+    if(this.position === position) {
+      this.position += Math.min(this.partSize, this.archiveSize - position);
+
+      const nextIndex = this.completedSequences.indexOf(this.position);
+
+      if(nextIndex >= 0) {
+        this.completedSequences.splice(nextIndex, 1);
+        this.addSequence(this.position);
+      }
+    } else {
+      this.completedSequences.push(position);
+    }
   }
 
   setError(error) {

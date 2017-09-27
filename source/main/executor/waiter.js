@@ -9,9 +9,15 @@ const debug = new Debug('executor:waiter');
 
 export default class Waiter {
 
-  constructor(queue) {
+  constructor(options = {}) {
+
+    const {timeout = Transfer.STATUS_INTERVAL} = options;
+
+    this.timers = [];
     this.listeners = [];
     this.queue = new Queue();
+    this.queue.start();
+    this.timeout = timeout;
   }
 
   subscribe(listener) {
@@ -67,10 +73,12 @@ export default class Waiter {
           debug('CONTINUE %s (expected: %s, received: %s)',
             handler.name, value, response[key]);
 
-          return setTimeout(
-            this.wait.bind(this, job, resolve, reject),
-            Transfer.STATUS_INTERVAL
-          );
+          const timeout = setTimeout(() => {
+            this.wait(job, resolve, reject);
+            this.timers.splice(this.timers.indexOf(timeout), 1);
+          }, this.timeout);
+
+          return this.timers.push(timeout);
         }
 
         debug('READY', handler.name);
@@ -84,6 +92,8 @@ export default class Waiter {
   }
 
   stop() {
+    this.timers.forEach(clearTimeout);
+    this.timers.length = 0;
     return this.queue.stop();
   }
 

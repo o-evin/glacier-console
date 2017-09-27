@@ -10,7 +10,6 @@ import {UploadStatus} from '../../../../contracts/enums';
 export default class ViewUpload extends PureComponent {
 
   static propTypes = {
-    stats: PropTypes.array,
     prefix: PropTypes.string,
     value: PropTypes.instanceOf(Upload),
     onRemove: PropTypes.func.isRequired,
@@ -99,18 +98,15 @@ export default class ViewUpload extends PureComponent {
     );
   }
 
-  renderError(upload, stats) {
-
-    const doneParts = stats ? stats.length : 0;
-    const totalParts = Math.ceil(upload.archiveSize / upload.partSize);
-    const completion = Math.round((doneParts / totalParts) * 100);
-
-    const {error} = upload;
+  renderError(upload) {
 
     const {prefix} = this.props;
+
     const description = prefix ?
       upload.description.slice(prefix.length + 1) :
       upload.description;
+
+    const {error, completion} = upload;
 
     return (
       <li className="list-group-item p-1" title={error}>
@@ -147,16 +143,15 @@ export default class ViewUpload extends PureComponent {
     );
   }
 
-  renderProcessing(upload, stats) {
+  renderProcessing(upload) {
 
     const {prefix} = this.props;
+
     const description = prefix ?
       upload.description.slice(prefix.length + 1) :
       upload.description;
 
-    const doneParts = stats ? stats.length : 0;
-    const totalParts = Math.ceil(upload.archiveSize / upload.partSize);
-    const completion = Math.round((doneParts / totalParts) * 100);
+    const {completion} = upload;
 
     return (
       <li className="list-group-item p-1">
@@ -187,15 +182,15 @@ export default class ViewUpload extends PureComponent {
 
   render() {
 
-    const {value, stats} = this.props;
+    const {value} = this.props;
 
     if(value.status === UploadStatus.DONE) {
       return this.renderFinished(value);
     } else if(value.status === UploadStatus.ERROR) {
-      return this.renderError(value, stats);
+      return this.renderError(value);
     } else if(value.status === UploadStatus.PROCESSING) {
-      if(stats) {
-        return this.renderProcessing(value, stats);
+      if(value.completion > 0) {
+        return this.renderProcessing(value);
       }
     }
 

@@ -6,39 +6,9 @@ import {
   RETRIEVAL_UPDATE_SUCCESS,
   RETRIEVAL_LIST_SUCCESS,
   RETRIEVAL_DELETE_SUCCESS,
-  RETRIEVAL_PART_UPDATE_SUCCESS,
-  RETRIEVAL_PART_LIST_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
-import {PartStatus} from '../../../contracts/enums';
-
-import {chain, union, isEqual} from 'lodash';
-
 import {Retrieval} from '../../../contracts/entities';
-
-function updateStats(stats = new Map(), parts) {
-  if(!Array.isArray(parts)) {
-    parts = [parts];
-  }
-
-  parts = parts.filter(entry => entry.status === PartStatus.DONE);
-
-  const retrievals = new Map(
-    chain(parts)
-      .groupBy(part => part.parentId)
-      .map((value, key) => ([key, value.map(item => item.id)]))
-      .value()
-  );
-
-  const merged = new Map(stats);
-
-  retrievals.forEach((value, key, map) => {
-    const current = merged.get(key);
-    merged.set(key, current ? union(current, value) : value);
-  });
-
-  return isEqual(merged, stats) ? stats : merged;
-}
 
 const compare = (a, b) => (a.createdAt - b.createdAt);
 
@@ -59,13 +29,6 @@ export default function(state = {}, action) {
         ...state,
         list: listUpdate(state.list, cast(action.payload))
           .sort(compare),
-      };
-
-    case RETRIEVAL_PART_UPDATE_SUCCESS:
-    case RETRIEVAL_PART_LIST_SUCCESS:
-      return {
-        ...state,
-        stats: updateStats(state.stats, action.payload),
       };
 
     case RETRIEVAL_DELETE_SUCCESS:

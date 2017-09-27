@@ -1,12 +1,10 @@
-import {Upload, Part} from '../../../contracts/entities';
+import {Upload} from '../../../contracts/entities';
 import {ActionType} from '../../../contracts/enums';
 
 const actions = {
   update: ActionType.UPLOAD_UPDATE_SUCCESS,
   remove: ActionType.UPLOAD_DELETE_SUCCESS,
   list: ActionType.UPLOAD_LIST_SUCCESS,
-  updatePart: ActionType.UPLOAD_PART_UPDATE_SUCCESS,
-  listParts: ActionType.UPLOAD_PART_LIST_SUCCESS,
 };
 
 import Dispatcher from './dispatcher';
@@ -20,13 +18,11 @@ export default class UploadeStore extends Dispatcher {
   }
 
   reset() {
-    return this.indexed.reset('UploadParts')
-      .then(() => this.indexed.reset('Uploads'));
+    return this.indexed.reset('Uploads');
   }
 
   close() {
-    return this.indexed.close('UploadParts')
-      .then(() => this.indexed.close('Uploads'));
+    return this.indexed.close('Uploads');
   }
 
   create(value) {
@@ -46,15 +42,7 @@ export default class UploadeStore extends Dispatcher {
   }
 
   remove(value) {
-    return this.findParts({parentId: value.id})
-      .then((parts) => {
-        return Promise.all(parts.map(
-          item => this.removePart(item)
-        ));
-      })
-      .then(() => {
-        return this.indexed.remove('Uploads', value.id);
-      });
+    return this.indexed.remove('Uploads', value.id);
   }
 
   get(id) {
@@ -79,37 +67,6 @@ export default class UploadeStore extends Dispatcher {
     const [value] = Object.values(criterion);
     return this.indexed.findBy('Uploads', key, value)
       .then(data => data && new Upload(data));
-  }
-
-  createPart(value) {
-    return this.indexed.create('UploadParts', value)
-      .then(data => new Part(data));
-  }
-
-  updatePart(value) {
-    return this.indexed.update('UploadParts', value)
-      .then(data => new Part(data));
-  }
-
-  getPart(id) {
-    return this.indexed.get('UploadParts', id)
-      .then(data => data && new Part(data));
-  }
-
-  listParts() {
-    return this.indexed.list('UploadParts')
-      .then(data => data.map(item => new Part(item)));
-  }
-
-  findParts(criterion) {
-    const [key] = Object.keys(criterion);
-    const [value] = Object.values(criterion);
-    return this.indexed.getMany('UploadParts', key, value)
-      .then(data => data.map(item => new Part(item)));
-  }
-
-  removePart(value) {
-    return this.indexed.remove('UploadParts', value.id);
   }
 
 }

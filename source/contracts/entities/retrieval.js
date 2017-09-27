@@ -1,5 +1,3 @@
-import uuid from 'uuid';
-
 import {isNil} from  'lodash';
 import {Part} from '../entities';
 
@@ -8,7 +6,6 @@ import {
   RetrievalStatus,
   RetrievalTier,
   RetrievalType,
-  PartStatus,
 } from '../enums';
 
 class Validator {
@@ -38,6 +35,8 @@ class Validator {
                 throw new Error('Retrieval tier is not valid.');
               }
               break;
+            case 'position':
+            case 'partSize':
             case 'archiveSize':
               if (!Number.isInteger(value)) {
                 value = parseInt(value);
@@ -71,41 +70,59 @@ export default class Retrieval extends Validator {
     this.id = raw.id;
     this.action = raw.action;
     this.archiveId = raw.archiveId;
-    this.archiveSize = raw.archiveSize;
     this.partSize = raw.partSize;
-    this.checksum = raw.checksum;
+    this.archiveSize = raw.archiveSize;
     this.createdAt = raw.createdAt;
     this.completedAt = raw.completedAt;
     this.description = raw.description;
+    this.checksum = raw.checksum;
     this.status = raw.status;
     this.tier = raw.tier;
     this.filePath = raw.filePath;
     this.vaultName = raw.vaultName;
     this.error = raw.error;
 
+    this.position = raw.position || 0;
+    this.completedSequences = raw.completedSequences || [];
   }
 
-  getParts() {
+  get completion() {
+    return Math.round((this.position / this.archiveSize) * 100);
+  }
+
+  getPendingParts() {
     const parts = [];
 
-    for (let pos = 0; pos < this.archiveSize; pos += this.partSize) {
+    let position = this.position;
 
-      const size = Math.min(this.partSize, this.archiveSize - pos);
-      const range = `bytes=${pos}-${pos + size - 1}`;
+    while(position < this.archiveSize) {
 
-      const part = new Part({
-        id: uuid.v4(),
-        size: size,
-        range: range,
-        position: pos,
-        parentId: this.id,
-        status: PartStatus.PROCESSING,
-      });
+      const size = Math.min(this.partSize, this.archiveSize - position);
 
-      parts.push(part);
+      if(this.completedSequences.indexOf(position) < 0) {
+        const range = `bytes=${position}-${position + size - 1}`;
+        parts.push(new Part({size, range, position}));
+      }
+
+      position += size;
     }
 
     return parts;
+  }
+
+  addSequence(position) {
+    if(this.position === position) {
+      this.position += Math.min(this.partSize, this.archiveSize - position);
+
+      const nextIndex = this.completedSequences.indexOf(this.position);
+
+      if(nextIndex >= 0) {
+        this.completedSequences.splice(nextIndex, 1);
+        this.addSequence(this.position);
+      }
+    } else {
+      this.completedSequences.push(position);
+    }
   }
 
   setError(error) {

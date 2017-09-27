@@ -16,8 +16,6 @@ module.exports = {
   target: 'electron-renderer',
   context: paths.root,
   entry: [
-    'webpack-dev-server/client?/',
-    'webpack/hot/only-dev-server',
     './source/renderer',
   ],
   output: {

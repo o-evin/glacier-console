@@ -1,4 +1,5 @@
 import fs from 'fs';
+import junk from 'junk';
 import path from 'path';
 import React, {PureComponent} from 'react';
 import {Route} from 'react-router-dom';
@@ -88,7 +89,7 @@ class ViewVaultContainer extends PureComponent {
       if(params && params.length > 0) {
 
         const getFiles = (dir, pathRoot, filelist = []) => {
-          let files = fs.readdirSync(dir);
+          let files = fs.readdirSync(dir).filter(junk.not);
           files.forEach((file) => {
             if (fs.statSync(path.join(dir, file)).isDirectory()) {
               getFiles(path.join(dir, file), pathRoot, filelist);
@@ -237,19 +238,17 @@ function mapStateToProps(state, props) {
     state.inventory.list.find(item => item.vaultName === vaultName);
 
   const {archives, requests: inventoryRequests} = state.inventory;
-  const {stats: uploadStats, list: uploads} = state.uploads;
-  const {stats: retrievalStats, list: retrievals} = state.retrievals;
+  const {list: uploads} = state.uploads;
+  const {list: retrievals} = state.retrievals;
 
   return {
     vault,
     vaultName,
     prefix,
     uploads,
-    uploadStats,
-    inventory,
-    retrievals,
-    retrievalStats,
     archives,
+    retrievals,
+    inventory,
     inventoryRequests,
   };
 }

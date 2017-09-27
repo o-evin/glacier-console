@@ -32,14 +32,16 @@ export default class QueueJob extends Validator {
 
     this.id = uuid.v4();
 
-    this.run = raw.run;
-    this.cancel = raw.cancel;
-
+    this.params = raw.params;
+    this.context = raw.context;
     this.handler = raw.handler;
 
     this.type = raw.type;
     this.reference = raw.reference;
 
+    this.reject = null;
+    this.resolve = null;
+    this.cancel = null;
   }
 
 }

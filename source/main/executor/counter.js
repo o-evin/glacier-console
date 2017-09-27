@@ -1,57 +1,47 @@
 import {isNil} from 'lodash';
+import {RequestType} from '../../contracts/enums';
 
-export default class ObservableCounter {
+export default class Counter {
   constructor() {
     this.counter = [];
-    this.listeners = [];
-  }
-
-  subscribe(listener) {
-    this.listeners.push(listener);
-
-    const unsubscribe = () => {
-      this.listeners.splice(this.listeners.indexOf(listener), 1);
-    };
-
-    return unsubscribe;
-  }
-
-  notify() {
-    if(!this.listeners.length) return;
-    this.listeners.forEach(listener => listener.call());
   }
 
   isEmpty() {
-    for(let key in this.counter) {
-      if(this.counter[key]) return false;
+    for(let type in this.counter) {
+      if(this.counter[type]) return false;
     }
     return true;
   }
 
-  add(job) {
-    if(isNil(this.counter[job.type])) {
-      this.counter[job.type] = 0;
+  add(type) {
+    if(isNil(this.counter[type])) {
+      this.counter[type] = 0;
     }
 
-    if(isNil(this.counter[job.reference])) {
-      this.counter[job.reference] = 0;
+    this.counter[type] += 1;
+  }
+
+  remove(type) {
+    this.counter[type] -= 1;
+  }
+
+  get(type) {
+    return this.counter[type] || 0;
+  }
+
+  getSlots(type) {
+
+    if(type === RequestType.UPLOAD_PART) {
+      const {maximumActiveParts} = global.config.get('transfer');
+      return maximumActiveParts - this.get(type);
     }
 
-    this.counter[job.type] += 1;
-    this.counter[job.reference] += 1;
+    if(type === RequestType.DOWNLOAD_PART) {
+      const {maximumActiveParts} = global.config.get('transfer');
+      return maximumActiveParts - this.get(type);
+    }
 
-    this.notify();
-  }
-
-  remove(job) {
-    this.counter[job.type] -= 1;
-    this.counter[job.reference] -= 1;
-
-    this.notify();
-  }
-
-  get(key) {
-    return this.counter[key];
+    return Number.MAX_SAFE_INTEGER;
   }
 
 }

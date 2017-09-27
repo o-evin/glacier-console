@@ -13,7 +13,7 @@ module.exports = {
   target: 'electron-main',
   context: paths.root,
   entry: [
-    './source/main/index',
+    './source/main',
   ],
   output: {
     filename: 'main.js',

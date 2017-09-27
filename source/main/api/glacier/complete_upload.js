@@ -22,7 +22,6 @@ export default function completeUpload(upload) {
           ...upload,
           archiveId: data.archiveId,
           checksum: data.checksum,
-          location: data.location,
           status: UploadStatus.DONE,
           completedAt: new Date(),
         })

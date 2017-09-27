@@ -55,7 +55,7 @@ export default class Vaults extends PureComponent {
       <div className="container-fluid pt-3">
         <h4 className="d-flex">
           <span className="align-self-center mr-auto p-2">
-            Vaults
+            Vault
           </span>
           <button className="btn btn-secondary ml-2"
             onClick={this.create.bind(this)}>

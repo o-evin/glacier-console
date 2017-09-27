@@ -1,4 +1,3 @@
-import fs from 'fs';
 import Debug from 'debug';
 import Queue from './queue';
 import TreeHash from '../api/hasher/tree_hash';
@@ -8,11 +7,12 @@ import {dialog} from 'electron';
 import {glacier} from '../api';
 
 import {
-  PartStatus,
   RequestType,
   QueueStatus,
   UploadStatus,
 } from '../../contracts/enums';
+
+import {HandledRejectionError} from '../../contracts/errors';
 
 import UploadStore from '../storage/typed/upload_store';
 
@@ -21,6 +21,7 @@ const debug = new Debug('executor:uploader');
 export default class Uploader {
 
   constructor(queue) {
+    //this.deferred = [];
     this.queue = new Queue();
     this.store = new UploadStore();
     this.status = QueueStatus.PENDING;
@@ -30,57 +31,31 @@ export default class Uploader {
 
     if(this.status === QueueStatus.PENDING) {
 
-      this.queue.start();
-      this.status = QueueStatus.PROCESSING;
-
       debug('STARTING');
+      this.queue.start();
+
+      this.status = QueueStatus.PROCESSING;
 
       return this.store.list()
         .then((uploads) => {
-
           if(!uploads.length) return uploads;
-
           debug('FOUND %s uploads', uploads.length);
-
-          const interrupted = uploads.filter(
-            item => item.status === UploadStatus.HOLD
-          );
-
-          if(interrupted.length === 0) return uploads;
-
-          debug('INTERRUPTED %s uploads', interrupted.length);
-
-          return Promise.all(
-            interrupted.map(item => item.setError('Operation aborted.'))
-              .map(item => this.store.update(item))
-          ).then((updates) => {
-            return uploads.filter(
-              item => updates.some(update => update.id === item.id) === false
-            ).concat(updates);
-          });
-        })
-        .then((uploads) => {
           return this.actualizeUploads(uploads);
         })
         .then((uploads) => {
-          return this.actualizeParts(uploads)
-            .then(() => {
-              return uploads.filter(
-                item => item.status === UploadStatus.PROCESSING
-              );
-            });
-        })
-        .then((uploads) => {
 
-          debug('ACTIVE %s uploads', uploads.length);
-
-          uploads.forEach(
-            item => this.queueUpload(item)
+          const active = uploads.filter(
+            item => item.status === UploadStatus.PROCESSING
           );
+
+          debug('ACTIVE %s uploads', active.length);
+          active.forEach(item => this.queueUpload(item));
 
           debug('INIT DONE');
         })
         .catch((error) => {
+
+          if(error instanceof HandledRejectionError) return;
 
           debug('APP ERROR');
 
@@ -111,16 +86,9 @@ export default class Uploader {
 
   push(upload) {
 
-    const parts = upload.getParts();
+    debug('PUSH UPLOAD %s', upload.description);
 
-    debug('PUSH UPLOAD %s (parts: %s)', upload.description, parts.length);
-
-    return Promise.all(parts.map(
-      item => this.store.createPart(item)
-    ))
-      .then(() => {
-        return this.store.create(upload);
-      })
+    return this.store.create(upload)
       .then((upload) => {
         this.queueUpload(upload);
         return upload;
@@ -131,7 +99,7 @@ export default class Uploader {
   restart(upload) {
     debug('RESTART UPLOAD %s (status: %s)', upload.description, upload.status);
 
-    return this.queue.remove(upload)
+    return this.stopUpload(upload)
       .then(() => {
         upload.status = UploadStatus.PROCESSING;
         return this.store.update(upload);
@@ -143,18 +111,17 @@ export default class Uploader {
   }
 
   remove(upload) {
-
     debug('DELETE UPLOAD', upload.description);
-
-    upload.status = UploadStatus.HOLD;
-
-    return this.store.update(upload)
-      .then((upload) => {
-        return this.queue.remove(upload);
-      })
+    return this.stopUpload(upload)
       .then(() => {
         return this.store.remove(upload);
       });
+  }
+
+  stopUpload(upload) {
+    debug('STOP UPLOAD (%s)', upload.description);
+    return this.queue.remove(upload)
+      .then(() => upload);
   }
 
   isProcessing() {
@@ -226,52 +193,15 @@ export default class Uploader {
       });
   }
 
-  actualizeParts(uploads) {
-
-    return this.store.listParts()
-      .then((parts) => {
-
-        debug('ACTUALIZE %s parts', parts.length);
-
-        return Promise.all(
-          parts.filter(
-            item => uploads.some(
-              upload => upload.id === item.parentId
-            ) === false
-          ).map(part => this.store.removePart(part))
-        )
-          .then((deleted) => {
-
-            debug('REMOVED %s corrupted parts', deleted.length);
-
-            return parts.filter(
-              item => deleted.includes(item.id) === false
-            );
-          });
-
-      });
-
-  }
-
   queueUpload(upload) {
-
     debug('QUEUE upload', upload.description);
 
-    return this.store.findParts({parentId: upload.id})
-      .then((parts) => {
-        return Promise.all(
-          parts.map(this.uploadPart.bind(this))
-        );
-      }).then((parts) => {
+    return this.uploadMultipart(upload)
+      .then(() => {
+        debug('UPLOAD DONE', upload.description);
 
-        debug('UPLOAD DONE (%s parts)', parts.length);
+        upload.checksum = TreeHash.from(upload.filePath);
 
-        const checksum = TreeHash.from(
-          parts.sort((a, b) => a.position - b.position)
-            .map(item => item.checksum)
-        );
-
-        upload.checksum = checksum;
         return this.store.update(upload);
 
       }).then((upload) => {
@@ -279,63 +209,60 @@ export default class Uploader {
       })
       .catch((error) => {
 
+        if(error instanceof HandledRejectionError) return;
+
         debug('ERROR (upload: %s) %O', upload.description, error);
 
-        dialog.showErrorBox('Upload error',
-          `There was an error with ${upload.description} operation:
-          ${error.toString()}`
-        );
+        this.stopUpload(upload);
 
         upload.setError(error);
         return this.store.update(upload);
       });
   }
 
-  uploadPart(part) {
+  uploadMultipart(upload) {
+    debug('UPLOAD MULTIPART', upload.description, upload.position);
 
-    if(part.status === PartStatus.DONE) {
-      return Promise.resolve(part);
-    }
+    const parts = upload.getPendingParts();
+    debug('QUEUE %s parts for', parts.length, upload.description);
 
-    debug('UPLOADING PART (id: %s)', part.id);
-
-    return this.store.get(part.parentId)
-      .then((upload) => {
-
-        let buffer = Buffer.alloc(part.size);
-        const fd = fs.openSync(upload.filePath, 'r');
-
-        fs.readSync(fd, buffer, 0, part.size, part.position);
-
-        return this.queue.push(
-          glacier.uploadPart.bind(null, part, upload.vaultName, buffer), {
-            type: RequestType.UPLOAD_PART, reference: upload.id,
+    return Promise.all(
+      parts.map(part =>
+        this.uploadPart(upload, part)
+          .then((part) => {
+            debug('ADD SEQUENCE %s for', part.position, upload.description);
+            upload.addSequence(part.position);
+            return this.store.update(upload);
           })
-          .then(({checksum}) => {
+      )
+    );
+  }
 
-            debug('PART DONE (id: %s)', part.id);
+  uploadPart(upload, part) {
 
-            part.checksum = checksum;
-            part.status = PartStatus.DONE;
+    debug('UPLOAD RANGE', upload.description, part.range);
 
-            buffer = null;
-
-            return this.store.updatePart(part);
-          });
+    return this.queue.push(glacier.uploadPart, {
+      type: RequestType.UPLOAD_PART,
+      reference: upload.id,
+      params: [{part, upload}],
+    })
+      .then(({checksum}) => {
+        debug('RANGE DONE', upload.description, part.range);
+        part.checksum = checksum;
+        return part;
       });
-
   }
 
   finalizeUpload(upload) {
 
     debug('FINALIZE', upload.description);
 
-    return this.queue.push(
-      glacier.completeUpload.bind(null, upload),
-      {reference: upload.id}
-    )
+    return this.queue.push(glacier.completeUpload, {
+      reference: upload.id,
+      params: [upload],
+    })
       .then((upload) => {
-
         debug('FINALIZED', upload.description);
 
         upload.status = UploadStatus.DONE;

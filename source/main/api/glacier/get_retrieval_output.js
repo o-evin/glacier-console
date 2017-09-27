@@ -5,8 +5,8 @@ export default function getRetrievalOutput({retrieval, part}) {
   return new Promise((resolve, reject) => {
 
     const params = {
-      jobId: retrieval.id,
       range: part.range,
+      jobId: retrieval.id,
       vaultName: retrieval.vaultName,
     };
 
