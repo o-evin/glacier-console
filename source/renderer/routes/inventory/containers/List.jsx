@@ -1,6 +1,7 @@
 import path from 'path';
 import PropTypes from 'prop-types';
 import {shell} from 'electron';
+import {groupBy} from 'lodash';
 import {connect} from 'react-redux';
 import React, {PureComponent} from 'react';
 
@@ -8,6 +9,9 @@ import ViewFolder from '../components/Folder';
 import ViewUpload from '../components/Upload';
 import ViewArchive from '../components/Archive';
 import ViewRetrieval from '../components/Retrieval';
+import ViewSummary from '../components/Summary';
+
+import ListEmptyItem from '../../../controls/ListEmptyItem';
 
 import {
   removeUpload,
@@ -24,6 +28,7 @@ import {
   removeArchive,
 } from '../../../modules/inventory/actions';
 
+
 class ListInventory extends PureComponent {
 
   static contextTypes = {
@@ -31,6 +36,16 @@ class ListInventory extends PureComponent {
       history: PropTypes.object.isRequired,
     }),
   };
+
+  constructor(props) {
+    super(props);
+
+    const {prefix} = this.props;
+
+    this.state = {
+      prefix: prefix ? prefix + '/' : '',
+    };
+  }
 
   retrieveArchive(archive, tier) {
     const {vaultName} = this.props;
@@ -42,181 +57,126 @@ class ListInventory extends PureComponent {
     return this.props.removeRetrieval(retrieval);
   }
 
-  filterByPath(entries) {
-    const {prefix, vaultName} = this.props;
-
-    return entries.filter(
-      item => item.vaultName === vaultName &&
-        (!prefix || item.description.startsWith(prefix + '/'))
-    );
-  }
-
-  extractFolders(entries) {
-    const {prefix} = this.props;
-
-    return entries
-      .filter(archive => archive.description.indexOf('/') > 0)
-      .map(archive => prefix ?
-        archive.description.slice(prefix.length + 1) : archive.description
-      )
-      .filter(filePath => filePath.indexOf('/') > 0)
-      .map(filePath => filePath.slice(0, filePath.indexOf('/')))
-      .filter((dir, index, array) => array.indexOf(dir) === index)
-      .sort((a, b) => a.localeCompare(b));
-  }
-
-  selectFolder(name) {
-    const {vaultName, prefix = ''} = this.props;
-    const folderPath = path.join('/vaults', vaultName, prefix, name, '/')
-      .replace('\\', '/');
-
+  selectFolder(prefix) {
+    const {vaultName} = this.props;
+    const folderPath = path.posix.join('/vaults', vaultName, prefix);
     this.context.router.history.push(folderPath);
   }
 
-  renderFolder({name, uploads, archives, retrievals}) {
-    return (
-      <ViewFolder
-        key={name}
-        name={name}
-        uploads={uploads}
-        archives={archives}
-        retrievals={retrievals}
-        onSelect={this.selectFolder.bind(this)}
-      />
-    );
+  splitContext(data) {
+    const {prefix} = this.state;
+    const {vaultName} = this.props;
 
+    const entries = [], directory = [];
+
+    data.filter(item => item.vaultName === vaultName)
+      .filter(item => item.description.startsWith(prefix))
+      .forEach(item => item.description.indexOf('/', prefix.length) > 0 ?
+        directory.push(item) : entries.push(item)
+      );
+
+    return {entries, directory};
   }
 
-  renderNavigateLevelUp() {
-    const goBack = () => this.selectFolder('../');
+  groupFolders(uploads, archives) {
+    const {prefix} = this.state;
 
-    return (
-      <li className="list-group-item p-1" onClick={goBack} role="button">
-        <div className="content w-100 d-flex">
-          <i className="fa fa-folder-open-o fa-2x align-self-center ml-2" />
-          <div className="description p-2 align-self-center mr-auto">..</div>
-        </div>
-      </li>
-    );
-  }
+    const key = path => path.slice(0, path.indexOf('/', prefix.length) + 1);
 
-  renderUpload(upload) {
-    const {prefix} = this.props;
+    const uploadFolders = groupBy(uploads, item => key(item.description));
+    const archiveFolders = groupBy(archives, item => key(item.description));
 
-    return (
-      <ViewUpload
-        key={upload.id}
-        prefix={prefix}
-        value={upload}
-        onRemove={this.props.removeUpload}
-        onRestart={this.props.restartUpload}
-      />
-    );
-  }
-
-  renderArchive(archive) {
-    const {prefix} = this.props;
-
-    return (
-      <ViewArchive
-        key={archive.id}
-        prefix={prefix}
-        value={archive}
-        onRemove={this.props.removeArchive}
-        onRetrieve={this.retrieveArchive.bind(this)}
-      />
-    );
-  }
-
-  renderRetrieval(retrieval) {
-    const {prefix} = this.props;
-
-    return (
-      <ViewRetrieval
-        key={retrieval.id}
-        prefix={prefix}
-        value={retrieval}
-        onShow={this.showRetrieval.bind(this)}
-        onRemove={this.props.removeRetrieval}
-        onRestart={this.props.restartRetrieval}
-      />
-    );
+    return Object.keys(uploadFolders).concat(Object.keys(archiveFolders))
+      .filter((value, index, self) => self.indexOf(value) === index)
+      .map(key => [key, {
+        uploads: uploadFolders[key] || [],
+        archives: archiveFolders[key] || [],
+        retrievals: archiveFolders[key] ?
+          this.props.retrievals.filter(item =>
+            archiveFolders[key].some(entry => entry.id === item.archiveId)
+          ) : [],
+      }]);
   }
 
   render() {
-    const {prefix} = this.props;
+    const {prefix} = this.state;
 
-    const uploads = this.filterByPath(this.props.uploads);
-    const archives = this.filterByPath(this.props.archives);
+    const uploads = this.splitContext(this.props.uploads);
+    const archives = this.splitContext(this.props.archives);
+    const folders = this.groupFolders(uploads.directory, archives.directory);
+
     const retrievals = this.props.retrievals.filter(
-      item => archives.some(archive => archive.id === item.archiveId)
+      item => archives.entries.some(entry => entry.id === item.archiveId)
     );
 
-    const folders = this.extractFolders(uploads.concat(archives));
-
-    const currentUploads = uploads.filter(item => (
-      prefix ? item.description.slice(prefix.length + 1) : item.description
-    ).indexOf('/') < 0);
-
-    const currentArchives = archives.filter(item => (
-      prefix ? item.description.slice(prefix.length + 1) : item.description
-    ).indexOf('/') < 0);
+    const items = uploads.entries.concat(archives.entries);
 
     return (
       <div className="inventory-list mt-3">
         <ul className="list-group list-progress mb-3">
-          {prefix && this.renderNavigateLevelUp()}
-          {folders.length > 0 &&
-            Array.from(folders).map((name) => {
-
-              const folderPath = path.join(prefix || '', name, '/')
-                .replace('\\', '/');
-
-              const folderUploads = uploads.filter(item =>
-                item.description.startsWith(folderPath)
-              );
-
-              const folderRetrievals = retrievals.filter(item =>
-                item.description.startsWith(folderPath)
-              );
-
-              const folderArchives = archives.filter(item =>
-                item.description.startsWith(folderPath)
-              );
-
-              return this.renderFolder({
-                name,
-                uploads: folderUploads,
-                retrievals: folderRetrievals,
-                archives: folderArchives,
-              });
-            })
+          { prefix.length > 0 &&
+            <ViewFolder
+              open={true}
+              key={prefix + '../'}
+              prefix={prefix + '../'}
+              onSelect={this.selectFolder.bind(this)}
+            />
           }
-
-          {currentUploads.length === 0 &&
-            currentArchives.length === 0 &&
-            <li className="list-group-item p-1">
-              <div className="content">
-                <div className="description p-2">No items found.</div>
-              </div>
-            </li>
+          {
+            Array.from(folders).map(([path, content]) => (
+              <ViewFolder
+                key={path}
+                prefix={path}
+                uploads={content.uploads}
+                archives={content.archives}
+                retrievals={content.retrievals}
+                onSelect={this.selectFolder.bind(this)}>
+                <ViewSummary
+                  uploads={content.uploads}
+                  archives={content.archives}
+                  retrievals={content.retrievals}
+                />
+              </ViewFolder>
+            ))
           }
-
-          {currentUploads.length > 0 &&
-            currentUploads.map(this.renderUpload.bind(this))
+          {
+            uploads.entries.map(upload => (
+              <ViewUpload
+                key={upload.id}
+                prefix={prefix}
+                upload={upload}
+                onRemove={this.props.removeUpload}
+                onRestart={this.props.restartUpload}
+              />
+            ))
           }
-
-          {currentArchives.length > 0 &&
-            currentArchives.map((archive) => {
+          {
+            archives.entries.map((archive) => {
               const retrieval = retrievals.find(
                 item => item.archiveId === archive.id
               );
-              if(retrieval) {
-                return this.renderRetrieval(retrieval);
-              }
-              return this.renderArchive(archive);
+
+              return (
+                retrieval ?
+                  <ViewRetrieval
+                    key={retrieval.id}
+                    prefix={prefix}
+                    retrieval={retrieval}
+                    onShow={this.showRetrieval.bind(this)}
+                    onRemove={this.props.removeRetrieval}
+                    onRestart={this.props.restartRetrieval}
+                  /> :
+                  <ViewArchive
+                    key={archive.id}
+                    prefix={prefix}
+                    archive={archive}
+                    onRemove={this.props.removeArchive}
+                    onRetrieve={this.retrieveArchive.bind(this)}
+                  />
+              );
             })
           }
+          { !items.length && <ListEmptyItem /> }
         </ul>
       </div>
     );

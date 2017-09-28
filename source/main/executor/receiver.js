@@ -138,15 +138,6 @@ export default class Receiver {
 
   }
 
-  remove(retrieval) {
-    debug('DELETE RETRIEVAL', retrieval.description);
-
-    return this.stopRetrieval(retrieval)
-      .then(() => {
-        return this.store.remove(retrieval);
-      });
-  }
-
   restart(retrieval) {
     debug('RESTART RETRIEVAL (%s)', retrieval.description);
 
@@ -158,6 +149,14 @@ export default class Receiver {
       .then((retrieval) => {
         this.processRetrieval(retrieval);
         return retrieval;
+      });
+  }
+
+  remove(retrieval) {
+    debug('DELETE RETRIEVAL', retrieval.description);
+    return this.stopRetrieval(retrieval)
+      .then(() => {
+        return this.store.remove(retrieval);
       });
   }
 

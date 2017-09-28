@@ -42,8 +42,10 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.ENVIRONMENT': JSON.stringify('production'),
-      'process.env.NODE_ENV': JSON.stringify('production'),
+      'process.env': {
+        ENVIRONMENT: JSON.stringify('production'),
+        NODE_ENV: JSON.stringify('production'),
+      },
     }),
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.optimize.ModuleConcatenationPlugin(),

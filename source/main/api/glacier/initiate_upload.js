@@ -12,11 +12,9 @@ export default function initiateUpload({filePath, pathRoot, vaultName,
     const stats = fs.statSync(filePath);
     const archiveSize = stats.size;
 
-
-    const description = path.join(
-      prefix || '',
+    const description = path.posix.join(prefix,
       pathRoot ? filePath.slice(pathRoot.length + 1) : path.basename(filePath),
-    ).replace('\\', '/') ;
+    );
 
     const {partSizeInBytes} = global.config.get('transfer');
 

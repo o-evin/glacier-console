@@ -109,12 +109,12 @@ export default class Queue {
             handler.name, job.type, job.reference, error
           );
 
-          if(++attempt <= Transfer.QUEUE_RETRY_ATTEMPTS) {
+          if(attempt <= Transfer.QUEUE_RETRY_ATTEMPTS) {
             debug('RETRY %s attempt %s (type: %s, reference: %s)',
               handler.name, attempt, job.type, job.reference
             );
 
-            return this.runner(job, attempt);
+            return this.runner(job, attempt + 1);
           }
         } else {
           debug('CANCELLED %s (type: %s)', handler.name, job.type);

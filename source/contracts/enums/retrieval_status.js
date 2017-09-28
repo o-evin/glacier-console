@@ -4,7 +4,6 @@ export const DONE = 'DONE';
 export const PENDING = 'PENDING';
 export const PROCESSING = 'PROCESSING';
 export const ERROR = 'ERROR';
-export const HOLD = 'HOLD';
 
 export function fromCode(code) {
   switch (code) {
@@ -15,6 +14,6 @@ export function fromCode(code) {
     case RetrievalStatusCode.FAILED:
       return ERROR;
     default:
-      return HOLD;
+      return PENDING;
   }
 }

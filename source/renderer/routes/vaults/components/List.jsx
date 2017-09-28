@@ -57,11 +57,13 @@ export default class Vaults extends PureComponent {
           <span className="align-self-center mr-auto p-2">
             Vault
           </span>
-          <button className="btn btn-secondary ml-2"
-            onClick={this.create.bind(this)}>
-            <i className="fa fa-plus text-muted mr-2" />
-            Create
-          </button>
+          <div>
+            <button className="btn btn-secondary ml-2"
+              onClick={this.create.bind(this)}>
+              <i className="fa fa-plus text-muted mr-2" />
+              Create
+            </button>
+          </div>
         </h4>
         <table className="table table-hover mt-3 scrollable">
           <thead>

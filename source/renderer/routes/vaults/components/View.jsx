@@ -74,14 +74,9 @@ export default class ViewVault extends PureComponent {
     }
   }
 
-  cancelAllUploads(uploads) {
+  cancelAllUploads() {
     if(confirm('Are you sure you want to cancel all upload operations?')) {
-
-      const uploads = this.props.uploads.filter(item =>
-        item.status !== RetrievalStatus.HOLD
-      );
-
-      return Promise.all(uploads.map(this.props.onRemoveUpload));
+      return Promise.all(this.props.uploads.map(this.props.onRemoveUpload));
     }
   }
 
@@ -103,11 +98,9 @@ export default class ViewVault extends PureComponent {
 
   cancelAllRetrievals() {
     if(confirm('Are you sure you want to cancel all retrieval operations?')) {
-      const retrievals = this.props.retrievals.filter(item =>
-        item.status !== RetrievalStatus.HOLD
+      return Promise.all(
+        this.props.retrievals.map(this.props.onRemoveRetrieval)
       );
-
-      return Promise.all(retrievals.map(this.props.onRemoveRetrieval));
     }
   }
 
@@ -232,18 +225,14 @@ export default class ViewVault extends PureComponent {
     const uploadDones = uploads.get(UploadStatus.DONE);
     const uploadProcessings = uploads.get(UploadStatus.PROCESSING);
 
-    const uploadsCount = this.props.uploads.filter(
-      item => item.status !== UploadStatus.HOLD
-    ).length;
+    const uploadsCount = this.props.uploads.length;
 
     const retrievalErrors = retrievals.get(RetrievalStatus.ERROR);
     const retrievalDones = retrievals.get(RetrievalStatus.DONE);
     const retrievalPendings = retrievals.get(RetrievalStatus.PENDING);
     const retrievalProcessings = retrievals.get(RetrievalStatus.PROCESSING);
 
-    const retrievalsCount = this.props.retrievals.filter(item =>
-      item.status !== RetrievalStatus.HOLD
-    ).length;
+    const retrievalsCount = this.props.retrievals.length;
 
     return (
       <div>
