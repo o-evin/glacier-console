@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "eslint ./source --ext .js --ext .jsx --ext .json",
     "pack": "./scripts/pack.sh",
-    "start": "node --harmony --require babel-register ./scripts/start.js",
-    "build": "node --harmony --require babel-register ./scripts/build.js",
+    "start": "node --require babel-register ./scripts/start.js",
+    "build": "node --require babel-register ./scripts/build.js",
     "electron": "DEBUG=executor:* electron ."
   },
   "repository": {
@@ -32,13 +32,12 @@
   "homepage": "https://github.com/o-evin/glacier-console#readme",
   "dependencies": {
     "aws-sdk": "^2.98.0",
-    "bytes": "^2.5.0",
+    "byte-size": "^4.0.2",
     "callsite": "^1.0.0",
     "classnames": "^2.2.5",
     "debug": "^3.0.0",
     "history": "^4.6.3",
     "http-status-codes": "^1.2.0",
-    "junk": "^2.1.0",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.18.1",

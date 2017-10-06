@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Prompt} from 'react-router-dom';
 
-import Component from '../../../helpers/component';
 import ActionButton from '../../../controls/ActionButton';
 
+import {Component} from '../../../helpers';
 import {Vault} from '../../../../contracts/entities';
 
 export default class EditVault extends Component {
@@ -31,7 +31,6 @@ export default class EditVault extends Component {
       ...vault,
     };
   }
-
 
   onSubmit(event) {
     event.preventDefault();
@@ -118,7 +117,7 @@ export default class EditVault extends Component {
           </div>
 
           <div className="form-group row">
-            <div className="offset-sm-3 col-sm-9">
+            <div className="col-md-3 ml-md-auto col-sm-9 py-3">
               <ActionButton animate={true} onClick={this.onSubmit.bind(this)}
                 className="btn btn-success">
                 {isEdit ? 'Update' : 'Create'}

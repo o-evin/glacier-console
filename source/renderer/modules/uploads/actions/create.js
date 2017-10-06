@@ -6,14 +6,14 @@ import {
   UPLOAD_CREATE_FAILURE,
 } from '../../../../contracts/enums/action_types';
 
-export default function createUpload({vaultName, prefix, filePath, pathRoot}) {
+export default function createUpload({vaultName, prefix, filePath}) {
   return (dispatch) => {
 
     dispatch({type: UPLOAD_CREATE_REQUEST});
 
     const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return jobExecutor.requestUpload({vaultName, prefix, filePath, pathRoot})
+    return jobExecutor.requestUpload({vaultName, prefix, filePath})
       .then((upload) => {
         dispatch({type: UPLOAD_CREATE_SUCCESS, payload: upload});
       })

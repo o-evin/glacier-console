@@ -5,16 +5,15 @@ import aws from './aws';
 import {Upload} from '../../../contracts/entities';
 import {UploadStatus} from '../../../contracts/enums';
 
-export default function initiateUpload({filePath, pathRoot, vaultName,
-  prefix = ''}) {
+export default function initiateUpload({filePath, vaultName, prefix = ''}) {
 
   return new Promise((resolve, reject) => {
     const stats = fs.statSync(filePath);
     const archiveSize = stats.size;
 
-    const description = path.posix.join(prefix,
-      pathRoot ? filePath.slice(pathRoot.length + 1) : path.basename(filePath),
-    );
+    const description = path.posix.join(
+      prefix, path.basename(filePath)
+    ).replace(/^[./]+/, '');
 
     const {partSizeInBytes} = global.config.get('transfer');
 
@@ -33,7 +32,6 @@ export default function initiateUpload({filePath, pathRoot, vaultName,
         description,
         vaultName,
         filePath,
-        pathRoot,
         partSize: partSizeInBytes,
         location: data.location,
         status: UploadStatus.PROCESSING,

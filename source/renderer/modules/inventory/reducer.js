@@ -1,4 +1,4 @@
-import listUpdate from '../../helpers/list_update';
+import {listUpdate} from '../../helpers';
 import {Archive, Retrieval, Inventory} from '../../../contracts/entities';
 
 import {
@@ -7,30 +7,40 @@ import {
   INVENTORY_UPDATE_SUCCESS,
   INVENTORY_INIT_SUCCESS,
   INVENTORY_CANCEL_SUCCESS,
+  INVENTORY_REMOVE_RETRIEVAL,
 } from '../../../contracts/enums/action_types';
 
 const compare = (a, b) => (b.createdAt - a.createdAt);
 
-function updateInventory(state, data) {
+function updateInventory(state, payload) {
 
-  if(!Array.isArray(data)) {
-    data = [data];
+  if(!Array.isArray(payload)) {
+    payload = [payload];
   }
 
-  const archives = data.reduce((entries, inventory) => {
-    return entries.filter(
-      item => item.vaultName !== inventory.vaultName
-    ).concat(inventory.archives ?
-      inventory.archives.splice(0, inventory.archives.length) : []
-    );
-  }, state.archives || []).map(item => new Archive(item));
+  let {
+    list: inventoryUpdates = [],
+    archives: archiveUpdates = [],
+  } = state;
 
-  const inventories = data.map(item => new Inventory(item));
+  payload.forEach(({archives, ...inventory}) => {
+    archiveUpdates = archiveUpdates.filter(
+      item => item.vaultName !== inventory.vaultName
+    ).concat(
+      archives.map(item => new Archive(item))
+    );
+
+    inventoryUpdates = inventoryUpdates.filter(
+      item => item.vaultName !== inventory.vaultName
+    );
+
+    inventoryUpdates.push(new Inventory(inventory));
+  });
 
   return {
     ...state,
-    archives: archives.sort(compare),
-    list: listUpdate(state.list, inventories),
+    archives: archiveUpdates.sort(compare),
+    list: inventoryUpdates,
   };
 
 }
@@ -41,6 +51,7 @@ function cast(data) {
 }
 
 export default function(state = {}, action) {
+
   switch (action.type) {
 
     case INVENTORY_LIST_SUCCESS:
@@ -54,6 +65,7 @@ export default function(state = {}, action) {
       };
 
     case INVENTORY_CANCEL_SUCCESS:
+    case INVENTORY_REMOVE_RETRIEVAL:
       return {
         ...state,
         requests: state.requests.filter(item => item.id !== action.payload),

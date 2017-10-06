@@ -7,14 +7,13 @@ import {
 } from '../../../../contracts/enums/action_types';
 
 
-export default function request(vault) {
+export default function request(vaultName) {
   return (dispatch) => {
-
     dispatch({type: INVENTORY_INIT_REQUEST});
 
     const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return jobExecutor.requestInventory(vault)
+    return jobExecutor.requestInventory(vaultName)
       .then((retrieval) => {
         dispatch({type: INVENTORY_INIT_SUCCESS, payload: retrieval});
       })

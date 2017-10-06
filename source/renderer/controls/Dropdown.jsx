@@ -42,9 +42,18 @@ export class Dropdown extends React.PureComponent {
         {'show': this.state.isOpen})}>
         {
           React.Children.map(this.props.children, (child) => {
-            if(child.type === DropdownToggle || child.type === DropdownMenu) {
+            if(child.type === DropdownToggle) {
               return React.cloneElement(child, {
                 onClick: this.toggle.bind(this),
+              });
+            }
+            if(child.type === DropdownMenu) {
+              return React.cloneElement(child, {
+                onClick: this.toggle.bind(this),
+                className: cx(
+                  child.props.className,
+                  {'show': this.state.isOpen}
+                ),
               });
             }
             return child;

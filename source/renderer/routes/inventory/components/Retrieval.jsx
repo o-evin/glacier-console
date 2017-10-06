@@ -16,7 +16,7 @@ export default class ViewRetrieval extends PureComponent {
   static propTypes = {
     prefix: PropTypes.string,
     retrieval: PropTypes.instanceOf(Retrieval),
-    onShow: PropTypes.func.isRequired,
+    onDisplay: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
     onRestart: PropTypes.func.isRequired,
   }
@@ -31,8 +31,8 @@ export default class ViewRetrieval extends PureComponent {
     return this.props.onRestart(this.props.retrieval);
   }
 
-  show() {
-    return this.props.onShow(this.props.retrieval);
+  display() {
+    return this.props.onDisplay(this.props.retrieval);
   }
 
   render() {
@@ -46,19 +46,19 @@ export default class ViewRetrieval extends PureComponent {
           <div className="progress w-100">
             <div className={cx('progress-bar h-100', {
               'list-group-item-danger': status === RetrievalStatus.ERROR,
-              'list-group-item-info': status === RetrievalStatus.PROCESSING,
+              'list-group-item-info': status !== RetrievalStatus.ERROR,
             })} style={{width: completion + '%'}}>
             </div>
           </div>
         }
         <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
+          <div className="text-truncate p-2 align-self-center mr-auto"
             title={title}>{title}</div>
           <div className="text-nowrap">
             { status === RetrievalStatus.PROCESSING &&
               <span className="p-2 d-inline-block align-middle text-primary">
-                { completion > 0 ? `${completion} %` :
-                  <i className="fa fa-spinner fa-spin fa-lg"/>
+                { completion > 0 ? completion + '%' :
+                  <i className="fa fa-spinner fa-pulse fa-lg"/>
                 }
               </span>
             }
@@ -78,20 +78,20 @@ export default class ViewRetrieval extends PureComponent {
                 </span>
                 <button className="btn btn-small btn-secondary ml-2"
                   title="Retry" onClick={this.restart.bind(this)}>
-                  <i className="fa fa-refresh text-muted" />
+                  <i className="fa fa-refresh" />
                 </button>
               </span>
             }
             { status === RetrievalStatus.DONE &&
               <button className="btn btn-small btn-secondary ml-2"
                 title="View archive"
-                onClick={this.show.bind(this)}>
-                <i className="fa fa-folder-open text-muted" />
+                onClick={this.display.bind(this)}>
+                <i className="fa fa-folder-open" />
               </button>
             }
             <ActionButton className="btn btn-small btn-secondary ml-2"
               title="Abort retrieval" onClick={this.remove.bind(this)}>
-              <i className="fa fa-stop text-muted" />
+              <i className="fa fa-stop" />
             </ActionButton>
           </div>
         </div>

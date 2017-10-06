@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
 
 import ActionButton from '../../../controls/ActionButton';
+
 import {
   Dropdown,
   DropdownMenu,
@@ -27,7 +28,8 @@ export default class ViewArchive extends PureComponent {
   }
 
   retrieve(tier) {
-    return this.props.onRetrieve(this.props.archive, tier);
+    const {archive} = this.props;
+    return this.props.onRetrieve({archive, tier});
   }
 
   remove() {
@@ -44,13 +46,13 @@ export default class ViewArchive extends PureComponent {
     return (
       <li className="list-group-item p-1">
         <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
+          <div className="text-truncate p-2 align-self-center mr-auto"
             title={title}>{title}</div>
           <div className="text-nowrap">
             <Dropdown className="dropdown btn-group ml-2">
               <ActionButton className="btn btn-secondary"
                 onClick={this.retrieve.bind(this, RetrievalTier.STANDARD)} >
-                <i className="fa fa-download text-muted" />
+                <i className="fa fa-download" />
               </ActionButton>
               <DropdownToggle className={cx('btn btn-secondary',
                 'dropdown-toggle dropdown-toggle-split')} >
@@ -73,7 +75,7 @@ export default class ViewArchive extends PureComponent {
             <ActionButton className="btn btn-secondary ml-2"
               title="Delete"
               onClick={this.remove.bind(this)}>
-              <i className="fa fa-trash text-muted" />
+              <i className="fa fa-trash" />
             </ActionButton>
           </div>
         </div>

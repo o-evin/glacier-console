@@ -1,4 +1,4 @@
-import listUpdate from '../../helpers/list_update';
+import {listUpdate} from '../../helpers';
 import {Vault} from '../../../contracts/entities';
 
 import {

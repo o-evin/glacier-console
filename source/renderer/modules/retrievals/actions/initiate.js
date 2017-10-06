@@ -6,14 +6,14 @@ import {
   RETRIEVAL_CREATE_FAILURE,
 } from '../../../../contracts/enums/action_types';
 
-export default function initiateRetrieval({vaultName, archive, tier}) {
+export default function initiateRetrieval({archive, tier}) {
   return (dispatch) => {
 
     dispatch({type: RETRIEVAL_CREATE_REQUEST});
 
     const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return jobExecutor.requestRetrieval({vaultName, archive, tier})
+    return jobExecutor.requestRetrieval({archive, tier})
       .then((retrieval) => {
         dispatch({type: RETRIEVAL_CREATE_SUCCESS, payload: retrieval});
       })

@@ -6,15 +6,15 @@ import {
   RetrievalStatus,
 } from '../../../contracts/enums';
 
-export default function initiateInventory(vault) {
+export default function initiateInventory(vaultName) {
 
   return new Promise((resolve, reject) => {
 
     const params = {
-      vaultName: vault.name,
+      vaultName: vaultName,
       jobParameters: {
         Type: RetrievalType.INVENTORY,
-        Description: vault.name,
+        Description: vaultName,
       },
     };
 
@@ -23,8 +23,8 @@ export default function initiateInventory(vault) {
 
       resolve(new Retrieval({
         id: data.jobId,
-        description: vault.name,
-        vaultName: vault.name,
+        description: vaultName,
+        vaultName: vaultName,
         action: RetrievalAction.INVENTORY,
         status: RetrievalStatus.PENDING,
       }));

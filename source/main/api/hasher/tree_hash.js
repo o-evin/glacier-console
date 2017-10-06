@@ -2,7 +2,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import {Size} from '../../../contracts/const';
 
-const PART_SIZE = Size.BYTES_IN_MEGABYTE;
+const PART_SIZE = Size.MEGABYTE_IN_BYTES;
 
 class Node {
 

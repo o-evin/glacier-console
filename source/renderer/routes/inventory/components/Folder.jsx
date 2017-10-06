@@ -27,7 +27,7 @@ export default class ViewFolder extends PureComponent {
           <i className={cx('fa fa-2x ml-2', this.props.open ?
             'fa-folder-open-o' : 'fa-folder-o')}
           />
-          <div title={title} className="description p-2 mr-auto"
+          <div title={title} className="text-truncate p-2 mr-auto"
             onClick={this.select.bind(this)} role="button">
             {title}
           </div>

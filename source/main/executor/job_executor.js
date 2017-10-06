@@ -21,10 +21,9 @@ export default class JobExecutor {
     this.inventorizer = new Inventorizer();
   }
 
-  requestInventory(vault) {
-    debug('INITIATE INVENTORY', vault.name);
-
-    return this.inventorizer.requestInventory(vault);
+  requestInventory(vaultName) {
+    debug('INITIATE INVENTORY', vaultName);
+    return this.inventorizer.requestInventory(vaultName);
   }
 
   cancelInventory(retrieval) {
@@ -79,9 +78,9 @@ export default class JobExecutor {
     return this.uploader.restart(upload);
   }
 
-  requestRetrieval({vaultName, archive, tier}) {
+  requestRetrieval({archive, tier}) {
     debug('INITIATE RETRIEVAL %s from %s',
-      archive.description, vaultName
+      archive.description, archive.vaultName
     );
 
     const {partSizeInBytes, downloadsPath} = global.config.get('transfer');
@@ -90,9 +89,9 @@ export default class JobExecutor {
 
     const params = {
       filePath,
-      vaultName,
       tier: tier,
       archiveId: archive.id,
+      vaultName: archive.vaultName,
       partSize: partSizeInBytes,
       archiveSize: archive.size,
       checksum: archive.checksum,

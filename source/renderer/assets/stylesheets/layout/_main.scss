@@ -28,11 +28,6 @@
     position: relative;
   }
 
-  .description {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .list-group-item {
     min-height: 3rem;
   }
@@ -51,11 +46,18 @@
   max-height: calc(100vh - 16rem);
 }
 
+.vault-label {
+  width: 4.5rem;
+  display: inline-block;
+  white-space: nowrap;
+  @include text-truncate;
+}
+
 .inventory-list {
   overflow: auto;
   min-height: 5rem;
   padding-bottom: 5rem;
-  height: calc(100vh - 23rem);
+  height: calc(100vh - 24rem);
 }
 
 .operations-list {

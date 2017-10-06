@@ -26,10 +26,3 @@ html, body {
 *, *::before, *::after {
   box-sizing: inherit;
 }
-
-input[type=range]::-moz-range-track {
-    height: 5px;
-    background: $gray-light;
-    border: none;
-    border-radius: 3px;
-}

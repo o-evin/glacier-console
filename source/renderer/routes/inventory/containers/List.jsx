@@ -1,19 +1,18 @@
 import path from 'path';
 import PropTypes from 'prop-types';
-import {shell} from 'electron';
-import {groupBy} from 'lodash';
+import {shell, remote} from 'electron';
 import {connect} from 'react-redux';
 import React, {PureComponent} from 'react';
 
-import ViewFolder from '../components/Folder';
-import ViewUpload from '../components/Upload';
-import ViewArchive from '../components/Archive';
-import ViewRetrieval from '../components/Retrieval';
+import Actions from '../components/Actions';
 import ViewSummary from '../components/Summary';
+import Breadcrumb from '../components/Breadcrumb';
+import ListInventory from '../components/List';
 
-import ListEmptyItem from '../../../controls/ListEmptyItem';
+import {readDir} from '../../../helpers';
 
 import {
+  createUpload,
   removeUpload,
   restartUpload,
 } from '../../../modules/uploads/actions';
@@ -29,7 +28,7 @@ import {
 } from '../../../modules/inventory/actions';
 
 
-class ListInventory extends PureComponent {
+class ListInventoryContainer extends PureComponent {
 
   static contextTypes = {
     router: PropTypes.shape({
@@ -37,147 +36,109 @@ class ListInventory extends PureComponent {
     }),
   };
 
-  constructor(props) {
-    super(props);
-
-    const {prefix} = this.props;
-
-    this.state = {
-      prefix: prefix ? prefix + '/' : '',
-    };
-  }
-
-  retrieveArchive(archive, tier) {
-    const {vaultName} = this.props;
-    return this.props.initiateRetrieval({vaultName, archive, tier});
-  }
-
-  showRetrieval(retrieval) {
-    shell.openItem(path.dirname(retrieval.filePath));
-    return this.props.removeRetrieval(retrieval);
-  }
-
-  selectFolder(prefix) {
+  navigate(prefix) {
     const {vaultName} = this.props;
     const folderPath = path.posix.join('/vaults', vaultName, prefix);
     this.context.router.history.push(folderPath);
   }
 
-  splitContext(data) {
-    const {prefix} = this.state;
-    const {vaultName} = this.props;
+  display(retrievals) {
 
-    const entries = [], directory = [];
+    if(!Array.isArray(retrievals)) {
+      retrievals = [retrievals];
+    }
 
-    data.filter(item => item.vaultName === vaultName)
-      .filter(item => item.description.startsWith(prefix))
-      .forEach(item => item.description.indexOf('/', prefix.length) > 0 ?
-        directory.push(item) : entries.push(item)
-      );
+    const paths = retrievals.map(
+      item => path.dirname(item.filePath)
+    ).filter((path, index, self) => self.indexOf(path) === index);
 
-    return {entries, directory};
+    paths.forEach(shell.openItem);
+
+    return Promise.all(retrievals.map(this.props.removeRetrieval));
   }
 
-  groupFolders(uploads, archives) {
-    const {prefix} = this.state;
+  uploadFile() {
+    return this.showUploadDialog(['openFile', 'multiSelections']);
+  }
 
-    const key = path => path.slice(0, path.indexOf('/', prefix.length) + 1);
+  uploadDirectory() {
+    return this.showUploadDialog(['openDirectory', 'multiSelections']);
+  }
 
-    const uploadFolders = groupBy(uploads, item => key(item.description));
-    const archiveFolders = groupBy(archives, item => key(item.description));
+  showUploadDialog(properties) {
+    remote.dialog.showOpenDialog({properties}, (params) => {
+      if(params && params.length > 0) {
+        const {vaultName} = this.props;
 
-    return Object.keys(uploadFolders).concat(Object.keys(archiveFolders))
-      .filter((value, index, self) => self.indexOf(value) === index)
-      .map(key => [key, {
-        uploads: uploadFolders[key] || [],
-        archives: archiveFolders[key] || [],
-        retrievals: archiveFolders[key] ?
-          this.props.retrievals.filter(item =>
-            archiveFolders[key].some(entry => entry.id === item.archiveId)
-          ) : [],
-      }]);
+        params.forEach((target) => {
+          readDir(target).forEach(filePath =>
+            this.props.createUpload({
+              filePath,
+              vaultName,
+              prefix: path.posix.join(
+                this.props.prefix,
+                path.dirname(filePath.slice(path.dirname(target).length))
+              ).replace(/^[./]+/, ''),
+            })
+          );
+        });
+      }
+    });
+  }
+
+  filterContext(entries) {
+    const {vaultName, prefix} = this.props;
+    entries = entries.filter(item => item.vaultName === vaultName);
+    return prefix.length === 0 ? entries :
+      entries.filter(item => item.description.startsWith(prefix));
   }
 
   render() {
-    const {prefix} = this.state;
+    const {prefix} = this.props;
 
-    const uploads = this.splitContext(this.props.uploads);
-    const archives = this.splitContext(this.props.archives);
-    const folders = this.groupFolders(uploads.directory, archives.directory);
-
+    const uploads = this.filterContext(this.props.uploads);
+    const archives = this.filterContext(this.props.archives);
     const retrievals = this.props.retrievals.filter(
-      item => archives.entries.some(entry => entry.id === item.archiveId)
+      item => archives.some(entry => entry.id === item.archiveId)
     );
 
-    const items = uploads.entries.concat(archives.entries);
-
     return (
-      <div className="inventory-list mt-3">
-        <ul className="list-group list-progress mb-3">
-          { prefix.length > 0 &&
-            <ViewFolder
-              open={true}
-              key={prefix + '../'}
-              prefix={prefix + '../'}
-              onSelect={this.selectFolder.bind(this)}
-            />
-          }
-          {
-            Array.from(folders).map(([path, content]) => (
-              <ViewFolder
-                key={path}
-                prefix={path}
-                uploads={content.uploads}
-                archives={content.archives}
-                retrievals={content.retrievals}
-                onSelect={this.selectFolder.bind(this)}>
-                <ViewSummary
-                  uploads={content.uploads}
-                  archives={content.archives}
-                  retrievals={content.retrievals}
-                />
-              </ViewFolder>
-            ))
-          }
-          {
-            uploads.entries.map(upload => (
-              <ViewUpload
-                key={upload.id}
-                prefix={prefix}
-                upload={upload}
-                onRemove={this.props.removeUpload}
-                onRestart={this.props.restartUpload}
-              />
-            ))
-          }
-          {
-            archives.entries.map((archive) => {
-              const retrieval = retrievals.find(
-                item => item.archiveId === archive.id
-              );
-
-              return (
-                retrieval ?
-                  <ViewRetrieval
-                    key={retrieval.id}
-                    prefix={prefix}
-                    retrieval={retrieval}
-                    onShow={this.showRetrieval.bind(this)}
-                    onRemove={this.props.removeRetrieval}
-                    onRestart={this.props.restartRetrieval}
-                  /> :
-                  <ViewArchive
-                    key={archive.id}
-                    prefix={prefix}
-                    archive={archive}
-                    onRemove={this.props.removeArchive}
-                    onRetrieve={this.retrieveArchive.bind(this)}
-                  />
-              );
-            })
-          }
-          { !items.length && <ListEmptyItem /> }
-        </ul>
+      <div className="mt-3">
+        <div className="d-flex px-2 align-items-center">
+          <Breadcrumb prefix={prefix} onSelect={this.navigate.bind(this)} />
+          <ViewSummary
+            uploads={uploads}
+            archives={archives}
+            retrievals={retrievals}
+          />
+          <Actions
+            uploads={uploads}
+            archives={archives}
+            retrievals={retrievals}
+            onUploadFile={this.uploadFile.bind(this)}
+            onUploadDirectory={this.uploadDirectory.bind(this)}
+            onRemoveUpload={this.props.removeUpload}
+            onRestartUpload={this.props.restartUpload}
+            onRetrieve={this.props.initiateRetrieval}
+            onRemoveRetrieval={this.props.removeRetrieval}
+            onRestartRetrieval={this.props.restartRetrieval}
+            onDisplay={this.display.bind(this)}
+          />
+        </div>
+        <ListInventory
+          prefix={prefix}
+          uploads={uploads}
+          archives={archives}
+          retrievals={retrievals}
+          onNavigate={this.navigate.bind(this)}
+          onRemoveUpload={this.props.removeUpload}
+          onRestartUpload={this.props.restartUpload}
+          onRetrieve={this.props.initiateRetrieval}
+          onRemoveRetrieval={this.props.removeRetrieval}
+          onRestartRetrieval={this.props.restartRetrieval}
+          onRemoveArchive={this.props.removeArchive}
+          onDisplay={this.display.bind(this)}
+        />
       </div>
     );
   }
@@ -192,17 +153,18 @@ function mapStateToProps(state, props) {
   const {list: retrievals} = state.retrievals;
 
   return {
-    prefix,
     vaultName,
     uploads,
     archives,
     retrievals,
+    prefix: prefix ? prefix + '/' : '',
   };
 }
 
 export default connect(
   mapStateToProps,
   {
+    createUpload,
     removeUpload,
     restartUpload,
     removeArchive,
@@ -210,4 +172,4 @@ export default connect(
     removeRetrieval,
     initiateRetrieval,
   }
-)(ListInventory);
+)(ListInventoryContainer);

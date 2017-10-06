@@ -198,6 +198,14 @@ export default class Uploader {
 
     return this.uploadMultipart(upload)
       .then(() => {
+        return this.store.get(upload.id);
+      })
+      .then((upload) => {
+
+        if(!upload || upload.status !== UploadStatus.PROCESSING) {
+          return;
+        }
+
         debug('UPLOAD DONE', upload.description);
 
         upload.checksum = TreeHash.from(upload.filePath);

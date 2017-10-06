@@ -1,14 +1,14 @@
 import React, {PureComponent} from 'react';
-import {NavLink} from 'react-router-dom';
+import {NavLink, withRouter} from 'react-router-dom';
 
-export default class AppMenu extends PureComponent {
+class AppMenu extends PureComponent {
   render() {
     return (
       <ul className="nav nav-tabs top-nav bg-faded pl-3">
         <li className="nav-item">
           <NavLink to="/vaults" activeClassName="active"
             className="nav-link">
-            Vaults
+              Vaults
           </NavLink>
         </li>
         <li className="nav-item">
@@ -21,3 +21,5 @@ export default class AppMenu extends PureComponent {
     );
   }
 }
+
+export default withRouter(AppMenu);

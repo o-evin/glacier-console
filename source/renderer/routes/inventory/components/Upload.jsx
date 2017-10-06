@@ -44,13 +44,13 @@ export default class ViewUpload extends PureComponent {
           </div>
         }
         <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
+          <div className="text-truncate p-2 align-self-center mr-auto"
             title={title}>{title}</div>
           <div className="text-nowrap">
             { status === UploadStatus.PROCESSING &&
               <span className="p-2 d-inline-block align-middle text-primary">
-                { completion > 0 ? `${completion} %` :
-                  <i className="fa fa-spinner fa-spin fa-lg"/>
+                { completion > 0 ? completion + '%' :
+                  <i className="fa fa-spinner fa-pulse fa-lg"/>
                 }
               </span>
             }
@@ -62,7 +62,7 @@ export default class ViewUpload extends PureComponent {
                 <ActionButton className="btn btn-small btn-secondary ml-2"
                   title="Retry"
                   onClick={this.restart.bind(this)}>
-                  <i className="fa fa-refresh text-muted" />
+                  <i className="fa fa-refresh" />
                 </ActionButton>
               </span>
             }
@@ -79,7 +79,7 @@ export default class ViewUpload extends PureComponent {
             }
             <ActionButton className="btn btn-small btn-secondary ml-2"
               title="Abort upload" onClick={this.abort.bind(this)}>
-              <i className="fa fa-stop text-muted" />
+              <i className="fa fa-stop" />
             </ActionButton>
           </div>
         </div>

@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import bytes from 'bytes';
+import bytes from 'byte-size';
 import {remote} from 'electron';
 
 import ActionButton from '../../../controls/ActionButton';
 
-import Component from '../../../helpers/component';
+import {Component} from '../../../helpers';
 import {Size} from '../../../../contracts/const';
 
 export default class Settings extends Component {
@@ -22,7 +22,7 @@ export default class Settings extends Component {
     const {config} = props;
 
     this.state = {
-      partSize: config.partSizeInBytes / Size.BYTES_IN_MEGABYTE,
+      partSize: config.partSizeInBytes / Size.MEGABYTE_IN_BYTES,
       activeParts: config.maximumActiveParts,
       downloadsPath: config.downloadsPath,
     };
@@ -46,7 +46,7 @@ export default class Settings extends Component {
     return this.props.onSubmit({
       ...this.props.config,
       maximumActiveParts: this.state.activeParts,
-      partSizeInBytes: powerSize * Size.BYTES_IN_MEGABYTE,
+      partSizeInBytes: powerSize * Size.MEGABYTE_IN_BYTES,
     });
   }
 
@@ -93,7 +93,8 @@ export default class Settings extends Component {
                     The part size must be a megabyte multiplied by a power of 2.
                     For example, 1 MB, 2 MB, 4 MB, 8 MB, and so on.
                     The minimum allowable part size is 1 MB, and the maximum is
-                    4096 MB. Default is {bytes(defaults.partSizeInBytes)}.
+                    4096 MB. Default is
+                    {bytes(defaults.partSizeInBytes).toString()}.
                   </small>
                 </div>
               </div>
@@ -101,7 +102,7 @@ export default class Settings extends Component {
                 <label className="col-sm-6 col-form-label">
                   Maximum active parts
                 </label>
-                <div className="col-sm-6">
+                <div className="col-sm-6 py-3">
                   <input type="number" className="form-control"
                     min="1" max="9999" step="1" required
                     value={activeParts}
@@ -114,7 +115,7 @@ export default class Settings extends Component {
                   </small>
                 </div>
               </div>
-              <div className="offset-sm-6 px-3 pt-1">
+              <div className="col-md-6 ml-md-auto px-3 pt-1">
                 <ActionButton animate={true}
                   onClick={this.saveTransfer.bind(this)}
                   className="btn btn-primary" type="button">
@@ -132,7 +133,7 @@ export default class Settings extends Component {
                 <label className="col-sm-6 col-form-label">
                   Downloads
                 </label>
-                <div className="col-sm-6">
+                <div className="col-sm-6 py-3">
                   <div className="input-group">
                     <input type="text"
                       className="form-control" required
@@ -153,7 +154,7 @@ export default class Settings extends Component {
                   </small>
                 </div>
               </div>
-              <div className="offset-sm-6 px-3 pt-1">
+              <div className="col-md-6 ml-md-auto px-3 pt-1">
                 <ActionButton animate={true}
                   onClick={this.savePaths.bind(this)}
                   className="btn btn-primary" type="button">

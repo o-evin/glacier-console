@@ -50,7 +50,6 @@ export default class Upload extends Validator {
     this.partSize = raw.partSize;
     this.status = raw.status;
     this.filePath = raw.filePath;
-    this.pathRoot = raw.pathRoot;
     this.vaultName = raw.vaultName;
     this.archiveSize = raw.archiveSize;
     this.checksum = raw.checksum;
@@ -64,7 +63,13 @@ export default class Upload extends Validator {
   }
 
   get completion() {
-    return Math.round((this.position / this.archiveSize) * 100);
+    return Math.round((this.finishedSize / this.archiveSize) * 100);
+  }
+
+  get finishedSize() {
+    return this.position + this.completedSequences.reduce((sum, position) => {
+      return sum + Math.min(this.partSize, this.archiveSize - position);
+    }, 0);
   }
 
   getPendingParts() {

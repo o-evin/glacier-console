@@ -122,13 +122,13 @@ export default class ActionButton extends PureComponent {
           'btn-danger action-failure': isFailure,
         })}
         onClick={this.clickHandler.bind(this)}>
-        <div className="action-status processing p-2">
-          <i className="fa fa-spinner fa-spin" />
+        <div className="action-status processing">
+          <i className="fa fa-spinner fa-pulse" />
         </div>
-        <div className="action-status failure p-2">
+        <div className="action-status failure">
           <i className="fa fa-exclamation-triangle fa-lg" />
         </div>
-        <div className="action-status success p-2">
+        <div className="action-status success">
           <i className="fa fa-check-square-o fa-lg" />
         </div>
         {

@@ -23,3 +23,11 @@ header {
     }
   }
 }
+
+.transfer-stats {
+  position: absolute;
+  left: 50%;
+  top: 1.1rem;
+  border-left: 1px solid $gray-200;
+  transform: translateX(-7rem);
+}

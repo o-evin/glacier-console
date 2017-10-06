@@ -87,7 +87,13 @@ export default class Retrieval extends Validator {
   }
 
   get completion() {
-    return Math.round((this.position / this.archiveSize) * 100);
+    return Math.round((this.finishedSize / this.archiveSize) * 100);
+  }
+
+  get finishedSize() {
+    return this.position + this.completedSequences.reduce((sum, position) => {
+      return sum + Math.min(this.partSize, this.archiveSize - position);
+    }, 0);
   }
 
   getPendingParts() {

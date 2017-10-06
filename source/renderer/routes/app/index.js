@@ -4,7 +4,6 @@ import {Route, Switch, Redirect, withRouter} from 'react-router-dom';
 
 import Loading from './components/Loading';
 import Header from './components/Header';
-import AppMenu from './components/AppMenu';
 
 import Signin from './containers/Signin';
 import Settings from './containers/Settings';
@@ -53,11 +52,7 @@ class App extends PureComponent {
         <Route {...rest} render={
           (props) => {
             return isAuthenticated ?
-              <div>
-                <AppMenu />
-                <Component {...props} />
-              </div> :
-              <Redirect to="/signin" />
+              <Component {...props} /> : <Redirect to="/signin" />
             ;
           }}
         />

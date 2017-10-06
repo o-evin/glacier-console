@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
-import {isString} from 'lodash';
 
+import {groupBy} from '../../../helpers';
 import {Archive, Retrieval, Upload} from '../../../../contracts/entities';
 
 import {
@@ -16,29 +16,14 @@ export default class ViewSummary extends PureComponent {
     uploads: PropTypes.arrayOf(PropTypes.instanceOf(Upload)).isRequired,
     archives: PropTypes.arrayOf(PropTypes.instanceOf(Archive)).isRequired,
     retrievals: PropTypes.arrayOf(PropTypes.instanceOf(Retrieval)).isRequired,
-  }
-
-  groupBy(array, criterion) {
-    const [key] = Object.keys(criterion);
-    const values = Object.values(criterion[key]).filter(isString);
-
-    const group = new Map(values.map(item => [item, []]));
-
-    return array.reduce((target, value) => {
-      target.get(value[key]).push(value);
-      return target;
-    }, group);
+    inventory: PropTypes.instanceOf(Retrieval),
   }
 
   render() {
 
-    const uploads = this.groupBy(this.props.uploads,
-      {status: UploadStatus}
-    );
-
-    const retrievals = this.groupBy(this.props.retrievals,
-      {status: RetrievalStatus}
-    );
+    const uploads = groupBy(this.props.uploads, {status: UploadStatus});
+    const retrievals = groupBy(this.props.retrievals,
+      {status: RetrievalStatus});
 
     const errorsCount = uploads.get(UploadStatus.ERROR).length +
       retrievals.get(RetrievalStatus.ERROR).length;
@@ -53,24 +38,23 @@ export default class ViewSummary extends PureComponent {
 
     return (
       <span className="pr-2">
-        <span hidden={errorsCount === 0} title="Failed operations."
+        <span hidden={errorsCount === 0} title="Failed"
           className="badge badge-danger badge-pill ml-2">
           {errorsCount}
         </span>
         <span hidden={pendingCount === 0}
           className="badge badge-warning badge-pill ml-2"
-          title="Preparing a retrieval...">
+          title="Remote pending">
           {pendingCount}
         </span>
         <span hidden={processingCount === 0}
-          title="Transferring the data."
+          title="Ongoing"
           className="badge badge-primary badge-pill ml-2">
           {processingCount}
         </span>
         <span hidden={finishedCount === 0}
           className="badge badge-success badge-pill ml-2"
-          title={'Pending inventory. Updated approximately ' +
-            'once a day.'}>
+          title={'Finished'}>
           {finishedCount}
         </span>
       </span>

@@ -7,3 +7,4 @@ export Vault from './vault';
 export Inventory from './inventory';
 export QueueJob from './queue_job';
 export WaiterJob from './waiter_job';
+export TransferStats from './transfer_stats';

@@ -5,6 +5,7 @@ const actions = {
   list: ActionType.INVENTORY_LIST_SUCCESS,
   update: ActionType.INVENTORY_UPDATE_SUCCESS,
   listRetrievals: ActionType.INVENTORY_INIT_SUCCESS,
+  removeRetrieval: ActionType.INVENTORY_REMOVE_RETRIEVAL,
 };
 
 import Dispatcher from './dispatcher';

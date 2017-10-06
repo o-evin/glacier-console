@@ -1,3 +1,42 @@
 // -----------------------------------------------------------------------------
 // This file contains all @font-face declarations, if any.
 // -----------------------------------------------------------------------------
+
+.#{$fa-css-prefix}-fall {
+  overflow: hidden;
+
+  &::before {
+    display: block;
+    position: relative;
+    animation: fa-fall 2s infinite linear;
+  }
+}
+
+@keyframes fa-fall {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+
+.#{$fa-css-prefix}-rise {
+  overflow: hidden;
+
+  &::before {
+    display: block;
+    position: relative;
+    animation: fa-rise 2s infinite linear;
+  }
+}
+
+@keyframes fa-rise {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}

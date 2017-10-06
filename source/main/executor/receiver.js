@@ -251,12 +251,18 @@ export default class Receiver {
     }
 
     if(!stats || stats.size !== archiveSize) {
-      const fd = fs.openSync(filePath, 'w');
-      fs.writeSync(fd, Buffer.alloc(archiveSize));
+      fs.closeSync(fs.openSync(filePath, 'w'));
     }
 
     return this.downloadMultipart(retrieval)
       .then(() => {
+        return this.store.get(retrieval.id);
+      })
+      .then((retrieval) => {
+
+        if(!retrieval || retrieval.status !== RetrievalStatus.PROCESSING) {
+          return;
+        }
 
         const checksum = TreeHash.from(retrieval.filePath);
 
@@ -276,10 +282,11 @@ export default class Receiver {
 
         debug('ERROR (retrieval: %s): %O', retrieval.description, error);
 
-        this.stopRetrieval(retrieval);
-
-        retrieval.setError(error);
-        return this.store.update(retrieval);
+        this.stopRetrieval(retrieval)
+          .then(() => {
+            retrieval.setError(error);
+            return this.store.update(retrieval);
+          });
       });
   }
 
@@ -307,7 +314,7 @@ export default class Receiver {
 
     return this.queue.push(glacier.getRetrievalOutput, {
       type: RequestType.DOWNLOAD_PART,
-      reference: part.parentId,
+      reference: retrieval.id,
       params: [{retrieval, part}],
     })
       .then((data) => {

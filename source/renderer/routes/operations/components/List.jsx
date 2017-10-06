@@ -1,344 +1,170 @@
-import chain from 'lodash';
+import {groupBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
 
 import ActionButton from '../../../controls/ActionButton';
+import ListEmptyItem from '../../../controls/ListEmptyItem';
 
 import {Retrieval, Upload} from '../../../../contracts/entities';
 
 import {
   UploadStatus,
   RetrievalStatus,
-  RetrievalAction,
 } from '../../../../contracts/enums';
 
-export default class Operations extends PureComponent {
+import Inventory from '../components/Inventory';
+import Uploads from '../components/Uploads';
+import Retrievals from '../components/Retrievals';
+import TransferStats from '../components/Stats';
+
+export default class ListOperations extends PureComponent {
 
   static propTypes = {
     uploads: PropTypes.arrayOf(PropTypes.instanceOf(Upload)).isRequired,
     retrievals: PropTypes.arrayOf(PropTypes.instanceOf(Retrieval)).isRequired,
-    onRestart: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-  }
-
-  static contextTypes = {
-    router: PropTypes.shape({
-      history: PropTypes.object.isRequired,
-    }),
-  };
-
-  select(name) {
-    this.context.router.history.push('/vaults/' + name);
+    inventoryRequests: PropTypes.arrayOf(
+      PropTypes.instanceOf(Retrieval)
+    ).isRequired,
+    onSelect: PropTypes.func.isRequired,
+    onRemoveUpload: PropTypes.func.isRequired,
+    onRemoveRetrieval: PropTypes.func.isRequired,
+    onRestartUpload: PropTypes.func.isRequired,
+    onRestartRetrieval: PropTypes.func.isRequired,
+    onCancelInventory: PropTypes.func.isRequired,
   }
 
   abortAll() {
     if(confirm('Are you sure you want to abort all operations?')) {
-      const {uploads, retrievals} = this.props;
-      return Promise.all(
-        uploads.concat(retrievals).map(this.props.onRemove)
-      );
+      const {uploads, retrievals, inventoryRequests} = this.props;
+      return Promise.all([
+        ...uploads.map(this.props.onRemoveUpload),
+        ...retrievals.map(this.props.onRemoveRetrieval),
+        ...inventoryRequests.map(this.props.onCancelInventory),
+      ]);
     }
   }
 
-  abortUploads(vaultName) {
-    if(confirm('Are you sure you want to abort all uploads '
-      + 'in this vault?')) {
-
-      return Promise.all(
-        this.props.uploads
-          .filter(item => item.vaultName === vaultName)
-          .map(this.props.onRemove)
-      );
-    }
-  }
-
-  abortRetrievals(vaultName) {
-    if(confirm('Are you sure you want to abort all retrievals '
-      + 'in this vault?')) {
-
-      return Promise.all(
-        this.props.retrievals
-          .filter(item => item.vaultName === vaultName)
-          .map(this.props.onRemove)
-      );
-
-    }
-  }
-
-  restartAll() {
+  restartAll(errors) {
     const {uploads, retrievals} = this.props;
 
-    return Promise.all(
-      uploads.filter(item => item.status === UploadStatus.ERROR)
-        .concat(
-          retrievals.filter(item => item.status === RetrievalStatus.ERROR)
-        )
-        .map(this.props.onRestart)
-    );
-  }
-
-  restart(operations) {
-    return Promise.all(
-      operations.errors.map(this.props.onRestart)
-    );
-  }
-
-  renderPendingUpload(vaultName, idx) {
-    return (
-      <li key={idx} className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
-            onClick={this.select.bind(this, vaultName)} role="button">
-            <i className="fa fa-upload mr-2" />
-            Uploading to {vaultName}
-          </div>
-          <div>
-            <div className="p-2">
-              <i className="fa fa-refresh fa-spin fa-lg text-primary"/>
-            </div>
-          </div>
-        </div>
-      </li>
-    );
-  }
-
-  renderVaultUploads(entry, idx) {
-    const [vaultName, operations] = entry;
-    const {errors, processing, finished} = operations;
-
-    const totalCount = errors.length + processing.length + finished.length;
-
-    if(totalCount === 0) {
-      return this.renderPendingUpload(vaultName, idx);
-    }
-
-    return (
-      <li key={idx} className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
-            onClick={this.select.bind(this, vaultName)} role="button">
-            <i className="fa fa-upload mr-2" />
-            Uploading to {vaultName}
-            <span hidden={errors.length === 0} title="Failed operations."
-              className="badge badge-danger badge-pill ml-2">
-              {errors.length}
-            </span>
-            <span hidden={processing.length === 0}
-              className="badge badge-primary badge-pill ml-2"
-              title="Transferring the data...">
-              {processing.length}
-            </span>
-            <span hidden={finished.length === 0}
-              className="badge badge-success badge-pill ml-2"
-              title={'Pending inventory. Updated approximately once a day.'}>
-              {finished.length}
-            </span>
-          </div>
-          <div>
-            <ActionButton hidden={errors.length === 0} title="Retry"
-              className="btn btn-small btn-secondary ml-2"
-              onClick={this.restart.bind(this, operations)}>
-              <i className="fa fa-refresh text-muted" />
-            </ActionButton>
-            <ActionButton title="Abort"
-              className="btn btn-small btn-secondary ml-2"
-              onClick={this.abortUploads.bind(this, vaultName)}>
-              <i className="fa fa-stop text-muted" />
-            </ActionButton>
-          </div>
-        </div>
-      </li>
-    );
-  }
-
-  renderPendingRetrievals(vaultName, idx) {
-    return (
-      <li key={idx} className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
-            onClick={this.select.bind(this, vaultName)} role="button">
-            <i className="fa fa-download mr-2" />
-            Retrieving from {vaultName}
-          </div>
-          <div>
-            <div className="p-2">
-              <i className="fa fa-refresh fa-spin fa-lg text-primary"/>
-            </div>
-          </div>
-        </div>
-      </li>
-    );
-  }
-
-  renderVaultRetrievals(entry, idx) {
-    const [vaultName, operations] = entry;
-    const {errors, preparing, processing, inventory, finished} = operations;
-
-    const totalCount = errors.length + preparing.length + processing.length +
-      inventory.length + finished.length;
-
-    if(totalCount === 0) {
-      this.renderPendingRetrievals(vaultName, idx);
-    }
-
-    return (
-      <li key={idx} className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="description p-2 align-self-center mr-auto"
-            onClick={this.select.bind(this, vaultName)} role="button">
-            <i className="fa fa-download mr-2" />
-            Retrieving from {vaultName}
-            <span hidden={inventory.length === 0}
-              className="badge badge-info badge-pill ml-2"
-              title="Updating inventory...">
-              <i className="fa fa-list-ol" />
-            </span>
-            <span hidden={errors.length === 0} title="Failed operations."
-              className="badge badge-danger badge-pill ml-2">
-              {errors.length}
-            </span>
-            <span hidden={preparing.length === 0}
-              className="badge badge-warning badge-pill ml-2"
-              title="Preparing a retrieval...">
-              {preparing.length}
-            </span>
-            <span hidden={processing.length === 0}
-              className="badge badge-primary badge-pill ml-2"
-              title="Transferring the data...">
-              {processing.length}
-            </span>
-            <span hidden={finished.length === 0}
-              className="badge badge-success badge-pill ml-2"
-              title={'Download finished.'}>
-              {finished.length}
-            </span>
-          </div>
-          <div>
-            <ActionButton hidden={errors.length === 0} title="Retry"
-              className="btn btn-small btn-secondary ml-2"
-              onClick={this.restart.bind(this, operations)}>
-              <i className="fa fa-refresh text-muted" />
-            </ActionButton>
-            <ActionButton title="Abort"
-              className="btn btn-small btn-secondary ml-2"
-              onClick={this.abortRetrievals.bind(this, vaultName)}>
-              <i className="fa fa-stop text-muted" />
-            </ActionButton>
-          </div>
-        </div>
-      </li>
-    );
+    return Promise.all([
+      ...uploads.filter(item => item.status === UploadStatus.ERROR)
+        .map(this.props.onRestartUpload),
+      ...retrievals.filter(item => item.status === RetrievalStatus.ERROR)
+        .map(this.props.onRestartRetrieval),
+    ]);
   }
 
   render() {
 
-    const uploads = chain(this.props.uploads)
-      .groupBy(item => item.vaultName)
-      .map((value, key) => ([key,
-        value.reduce((res, item) => {
+    const {uploads, retrievals, inventoryRequests} = this.props;
 
-          //TODO: refactor this
+    const errorCount =
+      uploads.filter(item => item.status === UploadStatus.ERROR).length +
+      retrievals.filter(item => item.status === RetrievalStatus.ERROR).length;
 
-          if(item.status === UploadStatus.ERROR) {
-            res.errors.push(item);
-          } else if(item.status === UploadStatus.PROCESSING) {
-            res.processing.push(item);
-          } else if(item.status === UploadStatus.DONE) {
-            res.finished.push(item);
-          }
-          if(!res.lastUpdate || item.createdAt > res.lastUpdate) {
-            res.lastUpdate = item.createdAt;
-          }
-          return res;
-        }, {
-          errors: [],
-          processing: [],
-          finished: [],
-          lastUpdate: null,
-          type: Upload,
-        }),
-      ]))
-      .value();
+    const totalCount = uploads.length + retrievals.length
+      + inventoryRequests.length;
 
-    const retrievals = chain(this.props.retrievals)
-      .groupBy(item => item.vaultName)
-      .map((value, key) => ([key,
-        value.reduce((res, item) => {
+    const uploadGroup = groupBy(uploads, item => item.vaultName);
+    const retrievalGroup = groupBy(retrievals, item => item.vaultName);
 
-          if(item.action === RetrievalAction.INVENTORY) {
-            res.inventory.push(item);
-          } else if(item.status === RetrievalStatus.PENDING) {
-            res.preparing.push(item);
-          } 
+    const items = [
+      ...Object.entries(uploadGroup),
+      ...Object.entries(retrievalGroup),
+    ].sort(([firstVault, firstValues], [secondtVault, secondValues]) => {
+      const firstDate = Math.max.apply(
+        null, firstValues.map(item => item.createdAt)
+      );
+      const secondDate = Math.max.apply(
+        null, secondValues.map(item => item.createdAt)
+      );
+      return firstDate - secondDate;
+    });
 
-          if(item.status === RetrievalStatus.ERROR) {
-            res.errors.push(item);
-          } else if(item.status === RetrievalStatus.PROCESSING) {
-            res.processing.push(item);
-          } else if(item.status === RetrievalStatus.DONE) {
-            res.finished.push(item);
-          }
-
-          if(!res.lastUpdate || item.createdAt > res.lastUpdate) {
-            res.lastUpdate = item.createdAt;
-          }
-
-          return res;
-        }, {
-          errors: [],
-          preparing: [],
-          processing: [],
-          finished: [],
-          inventory: [],
-          lastUpdate: null,
-          type: Retrieval,
-        }),
-      ]))
-      .value();
-
-    const list = uploads.concat(retrievals).sort(
-      ([key1, a], [key2, b]) => a.lastUpdate - b.lastUpdate
-    );
-
-    const errorCount = list.reduce((prev, [, value]) => {
-      return prev + value.errors.length;
-    }, 0);
-
-
-    return(
+    return (
       <div className="container-fluid pt-3">
-        <h4 className="d-flex">
-          <span className="align-self-center mr-auto p-2">
-            Operations
+        <div className="d-flex text-nowrap">
+          <span className="d-flex align-items-center p-2 text-truncate">
+            <span className="h4 m-0">Operations</span>
+            <span className="small">
+              { uploads.length > 0 &&
+                <span className="ml-3">
+                  <i className="fa fa-upload mr-2" />
+                  <TransferStats entries={uploads} />
+                </span>
+              }
+              { retrievals.length > 0 &&
+                <span className="ml-3">
+                  <i className="fa fa-download mr-2" />
+                  <TransferStats entries={retrievals} />
+                </span>
+              }
+            </span>
           </span>
-          <div>
+          <div className="ml-auto">
             <ActionButton hidden={errorCount === 0}
               className="btn btn-secondary mr-2"
               onClick={this.restartAll.bind(this)}>
-              <i className="fa fa-refresh mr-2 text-muted" />
+              <i className="fa fa-refresh mr-2" />
               Retry
               <span className="badge badge-danger badge-pill ml-2">
                 {errorCount}
               </span>
             </ActionButton>
-            <ActionButton hidden={list.length === 0}
+            <ActionButton hidden={totalCount === 0}
               className="btn btn-secondary"
               onClick={this.abortAll.bind(this)} >
-              <i className="fa fa-stop mr-2 text-muted" />
+              <i className="fa fa-stop mr-2" />
               Cancel All
             </ActionButton>
           </div>
-        </h4>
+        </div>
+
         <ul className="list-group list-progress operations-list mt-3">
           {
-            (list && list.length > 0) ?
-              list.map((item, idx) => {
-                const [, value] = item;
-                return value.type === Upload ?
-                  this.renderVaultUploads(item, idx) :
-                  this.renderVaultRetrievals(item, idx);
-              }) :
-              <li className="list-group-item">No items found.</li>
+            items.map(([vaultName, entries], idx) => {
+              const [item] = entries;
+              if(item instanceof Upload) {
+                return (
+                  <Uploads
+                    key={idx}
+                    vaultName={vaultName}
+                    uploads={entries}
+                    onSelect={this.props.onSelect}
+                    onRemove={this.props.onRemoveUpload}
+                    onRestart={this.props.onRestartUpload}
+                  />
+                );
+              }
+              if(item instanceof Retrieval) {
+                return (
+                  <Retrievals
+                    key={idx}
+                    vaultName={vaultName}
+                    retrievals={entries}
+                    onSelect={this.props.onSelect}
+                    onRemove={this.props.onRemoveRetrieval}
+                    onRestart={this.props.onRestartRetrieval}
+                  />
+                );
+              }
+            })
+          }
+          {
+            inventoryRequests.map((entry, idx) => {
+              return (
+                <Inventory
+                  key={idx}
+                  inventoryRequest={entry}
+                  onSelect={this.props.onSelect}
+                  onCancel={this.props.onCancelInventory}
+                />
+              );
+            })
+          }
+          { items.length ===0 && inventoryRequests.length === 0 &&
+            <ListEmptyItem />
           }
         </ul>
       </div>

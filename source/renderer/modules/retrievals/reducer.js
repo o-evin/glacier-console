@@ -1,4 +1,4 @@
-import listUpdate from '../../helpers/list_update';
+import {listUpdate} from '../../helpers';
 
 import {
   RETRIEVAL_GET_SUCCESS,

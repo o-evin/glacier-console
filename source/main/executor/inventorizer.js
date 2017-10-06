@@ -114,22 +114,22 @@ export default class Inventorizer {
       });
   }
 
-  requestInventory(vault) {
+  requestInventory(vaultName) {
 
-    debug('NEW REQUEST', vault.name);
+    debug('NEW REQUEST', vaultName);
 
-    return this.store.findOneRetrieval({vaultName: vault.name})
+    return this.store.findOneRetrieval({vaultName})
       .then((retrieval) => {
 
         if(retrieval) {
-          debug('REQUEST EXISTS', vault.name);
+          debug('REQUEST EXISTS', vaultName);
           return retrieval;
         }
 
-        debug('CREATE REQUEST', vault.name);
+        debug('CREATE REQUEST', vaultName);
 
         return this.queue.push(
-          glacier.initiateInventory.bind(null, vault)
+          glacier.initiateInventory.bind(null, vaultName)
         )
           .then((retrieval) => {
             return this.store.createRetrieval(retrieval);
@@ -250,7 +250,7 @@ export default class Inventorizer {
 
               return Promise.all(
                 outdated.map(
-                  item => this.requestInventory(item)
+                  item => this.requestInventory(item.name)
                 )
               );
 
@@ -291,9 +291,7 @@ export default class Inventorizer {
 
       })
       .then(() => {
-
         debug('INVENTORY UPDATED %s', retrieval.description);
-
         return this.store.removeRetrieval(retrieval);
       })
       .catch((error) => {

@@ -1,13 +1,14 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import Component from '../../../helpers/component';
+
+import logo from '../../../assets/images/aws-glacier.svg';
 import ActionButton from '../../../controls/ActionButton';
+
+import {Component} from '../../../helpers';
 import {AwsAuth} from '../../../../contracts/entities';
 import {AwsRegion} from '../../../../contracts/enums';
 import {AwsRegionDetails} from '../../../../contracts/dictionary';
-
-import logo from '../../../assets/images/aws-glacier.svg';
 
 export default class Signin extends Component {
 
