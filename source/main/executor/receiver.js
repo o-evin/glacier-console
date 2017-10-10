@@ -160,6 +160,13 @@ export default class Receiver {
       });
   }
 
+  removeAll(criterion) {
+    return this.store.find(criterion)
+      .then((retrievals) => {
+        return retrievals.map(item => this.remove(item));
+      });
+  }
+
   stopRetrieval(retrieval) {
     debug('STOP RETRIEVAL (%s)', retrieval.description);
     return Promise.all([
@@ -221,9 +228,10 @@ export default class Receiver {
       {status: RetrievalStatus.PROCESSING},
       {reference: retrieval.id},
     )
-      .then(retrieval => this.download(retrieval))
+      .then((retrieval) => {
+        return this.download(retrieval);
+      })
       .catch((error) => {
-
         if(error instanceof HandledRejectionError) return;
 
         debug('ERROR (retrieval: %s): %O', retrieval.description, error);
@@ -256,14 +264,6 @@ export default class Receiver {
 
     return this.downloadMultipart(retrieval)
       .then(() => {
-        return this.store.get(retrieval.id);
-      })
-      .then((retrieval) => {
-
-        if(!retrieval || retrieval.status !== RetrievalStatus.PROCESSING) {
-          return;
-        }
-
         const checksum = TreeHash.from(retrieval.filePath);
 
         if(retrieval.checksum !== checksum) {

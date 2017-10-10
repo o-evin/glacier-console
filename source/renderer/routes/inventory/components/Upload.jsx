@@ -11,7 +11,6 @@ import {UploadStatus} from '../../../../contracts/enums';
 export default class ViewUpload extends PureComponent {
 
   static propTypes = {
-    prefix: PropTypes.string,
     upload: PropTypes.instanceOf(Upload),
     onRemove: PropTypes.func.isRequired,
     onRestart: PropTypes.func,
@@ -28,9 +27,7 @@ export default class ViewUpload extends PureComponent {
   }
 
   render() {
-    const {prefix, upload} = this.props;
-    const {completedAt, completion, error, status, description} = upload;
-    const title = description.slice(prefix.length);
+    const {completedAt, completion, error, status, title} = this.props.upload;
 
     return (
       <li className="list-group-item p-1">

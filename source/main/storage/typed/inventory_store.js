@@ -4,6 +4,7 @@ import {ActionType} from '../../../contracts/enums';
 const actions = {
   list: ActionType.INVENTORY_LIST_SUCCESS,
   update: ActionType.INVENTORY_UPDATE_SUCCESS,
+  remove: ActionType.INVENTORY_REMOVE_SUCCESS,
   listRetrievals: ActionType.INVENTORY_INIT_SUCCESS,
   removeRetrieval: ActionType.INVENTORY_REMOVE_RETRIEVAL,
 };
@@ -58,14 +59,16 @@ export default class InventoryStore extends Dispatcher {
   }
 
   remove(value) {
-    return this.findOneRetrieval({vaultName: value.vaultName})
+    const vaultName = value.vaultName || value;
+
+    return this.findOneRetrieval({vaultName})
       .then((retrieval) => {
         if(retrieval) {
           return this.removeRetrieval(retrieval);
         }
       })
       .then(() => {
-        return this.indexed.remove('Inventory', value.id);
+        return this.indexed.remove('Inventory', vaultName);
       });
   }
 

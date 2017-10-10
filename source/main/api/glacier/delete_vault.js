@@ -1,14 +1,10 @@
 import aws from './aws';
 
-export default function deleteVault(vault) {
+export default function deleteVault(vaultName) {
 
   return new Promise((resolve, reject) => {
 
-    const params = {
-      vaultName: vault.name,
-    };
-
-    aws.deleteVault(params, (error) => {
+    aws.deleteVault({vaultName}, (error) => {
       if(error) return reject(error);
       resolve();
     });

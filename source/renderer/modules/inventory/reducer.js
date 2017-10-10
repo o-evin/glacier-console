@@ -8,6 +8,7 @@ import {
   INVENTORY_INIT_SUCCESS,
   INVENTORY_CANCEL_SUCCESS,
   INVENTORY_REMOVE_RETRIEVAL,
+  INVENTORY_REMOVE_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
 const compare = (a, b) => (b.createdAt - a.createdAt);
@@ -75,6 +76,20 @@ export default function(state = {}, action) {
       return {
         ...state,
         archives: state.archives.filter(item => item.id !== action.payload),
+      };
+
+    case INVENTORY_REMOVE_SUCCESS:
+      return {
+        ...state,
+        list: state.list.filter(
+          item => item.vaultName !== action.payload
+        ),
+        archives: state.archives.filter(
+          item => item.vaultName !== action.payload
+        ),
+        requests: state.requests.filter(
+          item => item.vaultName !== action.payload
+        ),
       };
 
     default:

@@ -13,25 +13,18 @@ export default class Waiter {
 
     const {timeout = Transfer.STATUS_INTERVAL} = options;
 
-    this.timers = [];
-    this.listeners = [];
+    this.timers = new Map();
     this.queue = new Queue();
     this.queue.start();
     this.timeout = timeout;
   }
 
-  subscribe(listener) {
-    this.listeners.push(listener);
-
-    const unsubscribe = () => {
-      this.listeners.splice(this.listeners.indexOf(listener), 1);
-    };
-
-    return unsubscribe;
-  }
-
   push(handler, criterion, options = {}) {
-    const {reference} = options;
+    let {reference} = options;
+
+    if(reference && Object(reference)) {
+      reference = reference.id;
+    }
 
     debug('PUSH WAITER', handler.name, criterion);
 
@@ -43,13 +36,7 @@ export default class Waiter {
   deferred(job) {
     return new Promise((resolve, reject) => {
       this.wait(job, resolve, reject);
-    })
-      .then((response) => {
-        for(let listener of this.listeners) {
-          listener(response);
-        }
-        return response;
-      });
+    });
   }
 
   wait(job, resolve, reject) {
@@ -57,7 +44,7 @@ export default class Waiter {
 
     debug('CHECK', handler.name);
 
-    return this.queue.push(handler, {type: RequestType.WAITER, reference})
+    this.queue.push(handler, {type: RequestType.WAITER, reference})
       .then((response) => {
 
         const {criterion} = job;
@@ -69,20 +56,31 @@ export default class Waiter {
           throw new TypeError(`Waiter criterion '${key}' is incorrect.`);
         }
 
+        if(!this.timers.has(reference)) {
+          this.timers.set(reference, []);
+        }
+
+        const timers = this.timers.get(reference);
+
         if(response[key] !== value) {
           debug('CONTINUE %s (expected: %s, received: %s)',
             handler.name, value, response[key]);
 
           const timeout = setTimeout(() => {
             this.wait(job, resolve, reject);
-            this.timers.splice(this.timers.indexOf(timeout), 1);
+            timers.splice(timers.indexOf(timeout), 1);
           }, this.timeout);
 
-          return this.timers.push(timeout);
-        }
+          timers.push(timeout);
 
-        debug('READY', handler.name);
-        resolve(response);
+        } else {
+          if(timers.length === 0) {
+            this.timers.delete(reference);
+          }
+
+          debug('READY', handler.name);
+          resolve(response);
+        }
       })
       .catch(reject);
   }
@@ -92,13 +90,24 @@ export default class Waiter {
   }
 
   stop() {
-    this.timers.forEach(clearTimeout);
-    this.timers.length = 0;
+    this.timers.forEach((timers) => {
+      timers.forEach(clearTimeout);
+    });
+
+    this.timers.clear();
     return this.queue.stop();
   }
 
-  remove(item) {
-    return this.queue.remove(item);
+  remove(entry) {
+    const reference = entry === Object(entry) ? entry.id : entry;
+    const timers = this.timers.get(reference);
+
+    if(timers) {
+      timers.forEach(clearTimeout);
+      this.timers.delete(reference);
+    }
+
+    return this.queue.remove(reference);
   }
 
 }

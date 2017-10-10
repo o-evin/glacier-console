@@ -118,6 +118,13 @@ export default class Uploader {
       });
   }
 
+  removeAll(criterion) {
+    return this.store.find(criterion)
+      .then((uploads) => {
+        return uploads.map(item => this.remove(item));
+      });
+  }
+
   stopUpload(upload) {
     debug('STOP UPLOAD (%s)', upload.description);
     return this.queue.remove(upload)
@@ -198,13 +205,6 @@ export default class Uploader {
 
     return this.uploadMultipart(upload)
       .then(() => {
-        return this.store.get(upload.id);
-      })
-      .then((upload) => {
-
-        if(!upload || upload.status !== UploadStatus.PROCESSING) {
-          return;
-        }
 
         debug('UPLOAD DONE', upload.description);
 

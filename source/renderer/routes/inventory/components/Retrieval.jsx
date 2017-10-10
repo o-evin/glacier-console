@@ -14,7 +14,6 @@ import {
 export default class ViewRetrieval extends PureComponent {
 
   static propTypes = {
-    prefix: PropTypes.string,
     retrieval: PropTypes.instanceOf(Retrieval),
     onDisplay: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
@@ -36,9 +35,7 @@ export default class ViewRetrieval extends PureComponent {
   }
 
   render() {
-    const {prefix, retrieval} = this.props;
-    const {completion, error, status, description} = retrieval;
-    const title = description.slice(prefix.length);
+    const {completion, error, status, title} = this.props.retrieval;
 
     return (
       <li className="list-group-item p-1">

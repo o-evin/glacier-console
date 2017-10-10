@@ -1,3 +1,4 @@
+import path from 'path';
 import {isNil} from  'lodash';
 
 class Validator {
@@ -42,6 +43,13 @@ export default class Archive extends Validator {
     this.checksum = raw.checksum;
     this.createdAt = raw.createdAt;
     this.description = raw.description;
+
+    Object.defineProperty(this, 'title', {
+      enumerable: true,
+      get: () => {
+        return path.basename(this.description);
+      },
+    });
   }
 
 

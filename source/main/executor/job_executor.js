@@ -21,6 +21,18 @@ export default class JobExecutor {
     this.inventorizer = new Inventorizer();
   }
 
+  removeVault(vaultName) {
+    return Promise.all([
+      this.uploader.removeAll({vaultName}),
+      this.receiver.removeAll({vaultName}),
+      this.inventorizer.removeInventory(vaultName),
+    ]).then(() => {
+      return this.queue.push(
+        glacier.deleteVault.bind(null, vaultName)
+      );
+    });
+  }
+
   requestInventory(vaultName) {
     debug('INITIATE INVENTORY', vaultName);
     return this.inventorizer.requestInventory(vaultName);
@@ -38,7 +50,7 @@ export default class JobExecutor {
       glacier.deleteArchive.bind(null, archive.id, archive.vaultName)
     )
       .then(() => {
-        return this.inventorizer.remove(archive);
+        return this.inventorizer.removeArchive(archive);
       });
   }
 

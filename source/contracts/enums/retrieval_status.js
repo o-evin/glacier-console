@@ -14,6 +14,6 @@ export function fromCode(code) {
     case RetrievalStatusCode.FAILED:
       return ERROR;
     default:
-      return PENDING;
+      return ERROR;
   }
 }

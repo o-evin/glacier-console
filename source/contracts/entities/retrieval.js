@@ -1,3 +1,4 @@
+import path from 'path';
 import {isNil} from  'lodash';
 import {Part} from '../entities';
 
@@ -84,6 +85,14 @@ export default class Retrieval extends Validator {
 
     this.position = raw.position || 0;
     this.completedSequences = raw.completedSequences || [];
+
+    Object.defineProperty(this, 'title', {
+      enumerable: true,
+      get: () => {
+        return path.basename(this.description);
+      },
+    });
+
   }
 
   get completion() {

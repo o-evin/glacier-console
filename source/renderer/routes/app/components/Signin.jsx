@@ -1,4 +1,3 @@
-import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -42,12 +41,8 @@ export default class Signin extends Component {
       <div>
         <img className="fixed-top public-background" src={logo} />
         <div className="container-fluid vertical-center w-100">
-          <div
-            className={cx('form-xs mx-auto bg-faded px-5 py-3',
-              'rounded box-shadow')}>
-
+          <div className="form-xs mx-auto bg-light px-5 py-3 rounded">
             <h4 className="form-group mt-3">AWS API Credentials</h4>
-
             <div className="form-group mt-3">
               <div className="input-group">
                 <input value={key || ''} className="form-control"

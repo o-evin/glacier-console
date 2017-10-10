@@ -4,6 +4,7 @@ export Upload from './upload';
 export Archive from './archive';
 export Retrieval from './retrieval';
 export Vault from './vault';
+export Folder from './folder';
 export Inventory from './inventory';
 export QueueJob from './queue_job';
 export WaiterJob from './waiter_job';

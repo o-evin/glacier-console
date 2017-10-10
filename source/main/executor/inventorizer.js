@@ -99,7 +99,20 @@ export default class Inventorizer {
       });
   }
 
-  remove(archive) {
+  cancel(retrieval) {
+    debug('REMOVE RETRIEVAL', retrieval.description);
+
+    return Promise.all([
+      this.queue.remove(retrieval),
+      this.waiter.remove(retrieval),
+    ])
+      .then(() => {
+        return this.store.removeRetrieval(retrieval);
+      });
+
+  }
+
+  removeArchive(archive) {
     debug('REMOVE %s from inventory %s',
       archive.description, archive.vaultName);
 
@@ -112,6 +125,10 @@ export default class Inventorizer {
 
         return this.store.replace(inventory);
       });
+  }
+
+  removeInventory(vaultName) {
+    return this.store.remove(vaultName);
   }
 
   requestInventory(vaultName) {
@@ -138,19 +155,6 @@ export default class Inventorizer {
             this.processRetrieval(retrieval);
             return retrieval;
           });
-      });
-
-  }
-
-  cancel(retrieval) {
-    debug('REMOVE RETRIEVAL', retrieval.description);
-
-    return Promise.all([
-      this.queue.remove(retrieval),
-      this.waiter.remove(retrieval),
-    ])
-      .then(() => {
-        return this.store.removeRetrieval(retrieval);
       });
 
   }

@@ -21,7 +21,6 @@ import {
 export default class ViewArchive extends PureComponent {
 
   static propTypes = {
-    prefix: PropTypes.string,
     archive: PropTypes.instanceOf(Archive),
     onRemove: PropTypes.func.isRequired,
     onRetrieve: PropTypes.func.isRequired,
@@ -39,9 +38,7 @@ export default class ViewArchive extends PureComponent {
   }
 
   render() {
-    const {archive, prefix} = this.props;
-    const {description} = archive;
-    const title = description.slice(prefix.length);
+    const {title} = this.props.archive;
 
     return (
       <li className="list-group-item p-1">

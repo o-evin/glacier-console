@@ -14,13 +14,9 @@ export default function removeVault(vault, navigateOnSuccess) {
 
     dispatch({type: VAULT_DELETE_REQUEST});
 
-    const glacier = remote.getGlobal('glacier');
+    const jobExecutor = remote.getGlobal('jobExecutor');
 
-    return glacier.deleteVault(vault)
-      .then(() => {
-        const {receiver} = remote.getGlobal('glacier');
-        return receiver.deleteInventory();
-      })
+    return jobExecutor.removeVault(vault.name)
       .then(() => {
         if(navigateOnSuccess) {
           dispatch(redirectTo(navigateOnSuccess));
@@ -38,7 +34,7 @@ export default function removeVault(vault, navigateOnSuccess) {
             'there have been no writes to the vault since the last ' +
             'inventory. \n\n' +
             'Please ensure there are no archives in the vault and wait for ' +
-            'the next remote inventory to proceed.'; 
+            'the next remote inventory to proceed.';
         }
 
         alert(message);

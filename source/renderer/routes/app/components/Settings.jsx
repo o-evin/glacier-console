@@ -77,7 +77,7 @@ export default class Settings extends Component {
       <div className="container-fluid">
         <div className="card mt-3">
           <h3 className="card-header">Transfer settings</h3>
-          <div className="card-block">
+          <div className="card-block p-3">
             <div className="col-lg-6" >
               <div className="form-group row">
                 <label className="col-sm-6 col-form-label">
@@ -127,7 +127,7 @@ export default class Settings extends Component {
         </div>
         <div className="card mt-3">
           <h3 className="card-header">Paths</h3>
-          <div className="card-block">
+          <div className="card-block p-3">
             <div className="col-lg-6" >
               <div className="form-group row">
                 <label className="col-sm-6 col-form-label">

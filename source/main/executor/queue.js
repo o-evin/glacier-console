@@ -51,6 +51,10 @@ export default class Queue {
       throw new QueueRejectError();
     }
 
+    if(options.reference && Object(options.reference)) {
+      options.reference = options.reference.id;
+    }
+
     const {
       params,
       context,
