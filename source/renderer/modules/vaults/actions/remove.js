@@ -18,6 +18,7 @@ export default function removeVault(vault, navigateOnSuccess) {
 
     return jobExecutor.removeVault(vault.name)
       .then(() => {
+
         if(navigateOnSuccess) {
           dispatch(redirectTo(navigateOnSuccess));
         }
@@ -33,8 +34,8 @@ export default function removeVault(vault, navigateOnSuccess) {
             'archives in the vault as of the last inventory it computed and ' +
             'there have been no writes to the vault since the last ' +
             'inventory. \n\n' +
-            'Please ensure there are no archives in the vault and wait for ' +
-            'the next remote inventory to proceed.';
+            'Please ensure there are no archives in the ' + vault.name + ' ' +
+            'vault and wait for the next remote inventory to proceed.';
         }
 
         alert(message);

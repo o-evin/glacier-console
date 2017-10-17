@@ -7,10 +7,15 @@ import {
 } from '../../../../contracts/enums/action_types';
 
 
-export default function restartUpload(upload) {
+export default function restartUpload(upload, startOver = false) {
   return (dispatch) => {
 
     dispatch({type: UPLOAD_RESTART_REQUEST});
+
+    if(startOver) {
+      startOver.position = 0;
+      startOver.completedSequences.length = 0;
+    }
 
     const jobExecutor = remote.getGlobal('jobExecutor');
 

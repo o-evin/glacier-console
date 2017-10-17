@@ -49,7 +49,8 @@ export default class TransferStats extends Validator {
   }
 
   get completion() {
-    return Math.round((this.finished / this.size) * 100) || 0;
+    const completion = (this.finished / this.size) * 100;
+    return isFinite(completion) ? +completion.toFixed(2) : 0;
   }
 
   update({size = 0, finished = 0}) {

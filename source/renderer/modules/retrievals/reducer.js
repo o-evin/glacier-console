@@ -10,8 +10,6 @@ import {
 
 import {Retrieval} from '../../../contracts/entities';
 
-const compare = (a, b) => (a.createdAt - b.createdAt);
-
 function cast(data) {
   return Array.isArray(data) ?
     data.map(item => new Retrieval(item)) : new Retrieval(data);
@@ -27,8 +25,7 @@ export default function(state = {}, action) {
     case RETRIEVAL_LIST_SUCCESS:
       return {
         ...state,
-        list: listUpdate(state.list, cast(action.payload))
-          .sort(compare),
+        list: listUpdate(state.list, cast(action.payload)),
       };
 
     case RETRIEVAL_DELETE_SUCCESS:

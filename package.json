@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "eslint ./source --ext .js --ext .jsx --ext .json",
     "pack": "./scripts/pack.sh",
-    "start": "node --require babel-register ./scripts/start.js",
-    "build": "node --require babel-register ./scripts/build.js",
+    "start": "node ./scripts/start.js",
+    "build": "node ./scripts/build.js",
     "electron": "DEBUG=executor:* electron ."
   },
   "repository": {
@@ -35,12 +35,12 @@
     "byte-size": "^4.0.2",
     "callsite": "^1.0.0",
     "classnames": "^2.2.5",
-    "debug": "^3.0.0",
     "history": "^4.6.3",
     "http-status-codes": "^1.2.0",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.18.1",
+    "moment-timezone": "^0.5.13",
     "nedb": "^1.8.0",
     "pluralize": "^6.0.0",
     "prop-types": "^15.5.10",
@@ -52,7 +52,9 @@
     "redux": "^3.7.2",
     "redux-thunk": "^2.2.0",
     "string": "^3.3.3",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "winston": "^2.4.0",
+    "winston-daily-rotate-file": "^1.7.2"
   },
   "devDependencies": {
     "babel-core": "^6.25.0",
@@ -84,6 +86,7 @@
     "sass-loader": "^6.0.6",
     "style-loader": "^0.18.2",
     "webpack": "^3.5.4",
-    "webpack-dev-server": "^2.7.1"
+    "webpack-dev-server": "^2.7.1",
+    "webpack-node-externals": "^1.6.0"
   }
 }

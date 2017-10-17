@@ -20,8 +20,12 @@ import TransferStats from '../components/Stats';
 export default class ListOperations extends PureComponent {
 
   static propTypes = {
-    uploads: PropTypes.arrayOf(PropTypes.instanceOf(Upload)).isRequired,
-    retrievals: PropTypes.arrayOf(PropTypes.instanceOf(Retrieval)).isRequired,
+    uploads: PropTypes.arrayOf(
+      PropTypes.instanceOf(Upload)
+    ).isRequired,
+    retrievals: PropTypes.arrayOf(
+      PropTypes.instanceOf(Retrieval)
+    ).isRequired,
     inventoryRequests: PropTypes.arrayOf(
       PropTypes.instanceOf(Retrieval)
     ).isRequired,
@@ -44,7 +48,7 @@ export default class ListOperations extends PureComponent {
     }
   }
 
-  restartAll(errors) {
+  retryAll() {
     const {uploads, retrievals} = this.props;
 
     return Promise.all([
@@ -53,6 +57,20 @@ export default class ListOperations extends PureComponent {
       ...retrievals.filter(item => item.status === RetrievalStatus.ERROR)
         .map(this.props.onRestartRetrieval),
     ]);
+  }
+
+  restartAll() {
+    if(confirm('Are you sure you want to restart all erroneous operations ' +
+      'from the beginning?')) {
+      const {uploads, retrievals} = this.props;
+
+      return Promise.all([
+        ...uploads.filter(item => item.status === UploadStatus.ERROR)
+          .map(item => this.props.onRestartUpload(item, true)),
+        ...retrievals.filter(item => item.status === RetrievalStatus.ERROR)
+          .map(item => this.props.onRestartRetrieval(item, true)),
+      ]);
+    }
   }
 
   render() {
@@ -84,28 +102,21 @@ export default class ListOperations extends PureComponent {
 
     return (
       <div className="container-fluid pt-3">
-        <div className="d-flex text-nowrap">
-          <span className="d-flex align-items-center p-2 text-truncate">
-            <span className="h4 m-0">Operations</span>
-            <span className="small">
-              { uploads.length > 0 &&
-                <span className="ml-3">
-                  <i className="fa fa-upload mr-2" />
-                  <TransferStats entries={uploads} />
-                </span>
-              }
-              { retrievals.length > 0 &&
-                <span className="ml-3">
-                  <i className="fa fa-download mr-2" />
-                  <TransferStats entries={retrievals} />
-                </span>
-              }
-            </span>
-          </span>
+        <div className="d-flex text-nowrap align-items-center">
+          <h4 className="p-2 m-0">Operations</h4>
           <div className="ml-auto">
             <ActionButton hidden={errorCount === 0}
               className="btn btn-secondary mr-2"
               onClick={this.restartAll.bind(this)}>
+              <i className="fa fa-step-backward mr-2" />
+              Start Over
+              <span className="badge badge-danger badge-pill ml-2">
+                {errorCount}
+              </span>
+            </ActionButton>
+            <ActionButton hidden={errorCount === 0}
+              className="btn btn-secondary mr-2"
+              onClick={this.retryAll.bind(this)}>
               <i className="fa fa-refresh mr-2" />
               Retry
               <span className="badge badge-danger badge-pill ml-2">
@@ -119,6 +130,21 @@ export default class ListOperations extends PureComponent {
               Cancel All
             </ActionButton>
           </div>
+        </div>
+
+        <div className="small mt-3">
+          { uploads.length > 0 &&
+            <span className="ml-3">
+              <i className="fa fa-upload mr-2" />
+              <TransferStats entries={uploads} />
+            </span>
+          }
+          { retrievals.length > 0 &&
+            <span className="ml-3">
+              <i className="fa fa-download mr-2" />
+              <TransferStats entries={retrievals} />
+            </span>
+          }
         </div>
 
         <ul className="list-group list-progress operations-list mt-3">

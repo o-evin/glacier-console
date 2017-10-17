@@ -37,7 +37,7 @@ export default class ViewSummary extends PureComponent {
     const pendingCount = retrievals.get(RetrievalStatus.PENDING).length;
 
     return (
-      <span className="pr-2">
+      <span className="pr-2 text-nowrap">
         <span hidden={errorsCount === 0} title="Failed"
           className="badge badge-danger badge-pill ml-2">
           {errorsCount}

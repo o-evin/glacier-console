@@ -14,6 +14,7 @@ export default class Settings extends Component {
     config: PropTypes.object.isRequired,
     defaults: PropTypes.object.isRequired,
     onSubmit: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
   }
 
   constructor(props) {
@@ -115,12 +116,14 @@ export default class Settings extends Component {
                   </small>
                 </div>
               </div>
-              <div className="col-md-6 ml-md-auto px-3 pt-1">
+              <div className="col-sm-6 ml-sm-auto pt-1">
                 <ActionButton animate={true}
                   onClick={this.saveTransfer.bind(this)}
                   className="btn btn-primary" type="button">
                   Save
                 </ActionButton>
+                <button className="btn btn-secondary ml-2" type="button"
+                  onClick={this.props.onCancel}>Cancel</button>
               </div>
             </div>
           </div>
@@ -154,12 +157,14 @@ export default class Settings extends Component {
                   </small>
                 </div>
               </div>
-              <div className="col-md-6 ml-md-auto px-3 pt-1">
+              <div className="col-sm-6 ml-sm-auto pt-1">
                 <ActionButton animate={true}
                   onClick={this.savePaths.bind(this)}
                   className="btn btn-primary" type="button">
                   Save
                 </ActionButton>
+                <button className="btn btn-secondary ml-2" type="button"
+                  onClick={this.props.onCancel}>Cancel</button>
               </div>
             </div>
           </div>

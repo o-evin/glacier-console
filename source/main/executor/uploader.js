@@ -1,4 +1,3 @@
-import Debug from 'debug';
 import Queue from './queue';
 import TreeHash from '../api/hasher/tree_hash';
 
@@ -16,12 +15,14 @@ import {HandledRejectionError} from '../../contracts/errors';
 
 import UploadStore from '../storage/typed/upload_store';
 
-const debug = new Debug('executor:uploader');
+import logger from '../../utils/logger';
+const debug = logger('executor:uploader');
+const errlog = logger('executor:uploader', 'error');
 
 export default class Uploader {
 
   constructor(queue) {
-    //this.deferred = [];
+    this.deferred = [];
     this.queue = new Queue();
     this.store = new UploadStore();
     this.status = QueueStatus.PENDING;
@@ -33,7 +34,6 @@ export default class Uploader {
 
       debug('STARTING');
       this.queue.start();
-
       this.status = QueueStatus.PROCESSING;
 
       return this.store.list()
@@ -42,29 +42,20 @@ export default class Uploader {
           debug('FOUND %s uploads', uploads.length);
           return this.actualizeUploads(uploads);
         })
-        .then((uploads) => {
-
-          const active = uploads.filter(
-            item => item.status === UploadStatus.PROCESSING
-          );
-
-          debug('ACTIVE %s uploads', active.length);
-          active.forEach(item => this.queueUpload(item));
-
+        .then(() => {
           debug('INIT DONE');
         })
         .catch((error) => {
 
           if(error instanceof HandledRejectionError) return;
 
-          debug('APP ERROR');
+          errlog('ERROR', error);
 
           dialog.showErrorBox('A fatal error',
             `Unable to start a receiver queue. Please restart the application.
             ${error.toString()}`
           );
 
-          debug('ERROR (%O)', error);
         });
     }
 
@@ -112,6 +103,7 @@ export default class Uploader {
 
   remove(upload) {
     debug('DELETE UPLOAD', upload.description);
+
     return this.stopUpload(upload)
       .then(() => {
         return this.store.remove(upload);
@@ -126,6 +118,11 @@ export default class Uploader {
   }
 
   stopUpload(upload) {
+
+    this.deferred = this.deferred.filter(
+      item => item.id !== upload.id
+    );
+
     debug('STOP UPLOAD (%s)', upload.description);
     return this.queue.remove(upload)
       .then(() => upload);
@@ -137,7 +134,6 @@ export default class Uploader {
 
   subscribe(listener) {
     debug('SUBSCRIBE to store');
-
     return this.store.subscribe(listener);
   }
 
@@ -160,56 +156,54 @@ export default class Uploader {
       });
   }
 
-
   actualizeUploads(uploads) {
+
+    uploads = uploads.filter(
+      item => item.status !== UploadStatus.DONE
+    );
 
     debug('ACTUALIZE %s uploads', uploads.length);
 
-    return this.queue.push(glacier.listVaults)
-      .then((vaults) => {
-
-        debug('GLACIER VAULTS %s', vaults.length);
-
+    return uploads.reduce((p, upload) => {
+      return p.then(() => {
         return this.queue.push(
-          vaults.map(
-            vault => glacier.listUploads.bind(null, vault)
-          )
-        ).then((results) => {
-          const jobs = [].concat(...results);
-
-          debug('GLACIER UPLOADS %s', jobs.length);
-
-          return Promise.all(
-            uploads.filter(
-              item => item.status !== UploadStatus.DONE
-            ).filter(
-              item => jobs.some(job => job.id === item.id) === false
-            ).map(
-              item => this.store.remove(item)
-            )
-          );
-        }).then((deleted) => {
-
-          debug('EXPIRED %s uploads', deleted.length);
-
-          return uploads.filter(
-            item => deleted.includes(item.id) === false
-          );
-
+          glacier.getUpload.bind(null, upload)
+        );
+      })
+        .then((job) => {
+          if(job) {
+            debug('RESTARTING', upload.description);
+            return this.store.get(job.id)
+              .then((upload) => {
+                if(upload && upload.status === UploadStatus.PROCESSING) {
+                  this.queueUpload(upload);
+                }
+              });
+          } else {
+            debug('EXPIRED', upload.description);
+            upload.setError('Expired');
+            return this.store.update(upload);
+          }
         });
-      });
+    }, Promise.resolve());
+
   }
 
   queueUpload(upload) {
+
+    if(this.queue.getSlots(RequestType.UPLOAD_PART) <= 0) {
+      debug('DEFER upload', upload.description);
+      this.deferred.push(upload);
+      return upload;
+    }
+
     debug('QUEUE upload', upload.description);
 
     return this.uploadMultipart(upload)
       .then(() => {
 
         debug('UPLOAD DONE', upload.description);
-
         upload.checksum = TreeHash.from(upload.filePath);
-
         return this.store.update(upload);
 
       }).then((upload) => {
@@ -219,19 +213,25 @@ export default class Uploader {
 
         if(error instanceof HandledRejectionError) return;
 
-        debug('ERROR (upload: %s) %O', upload.description, error);
+        errlog('ERROR (upload: %s)', upload.description, error);
 
         this.stopUpload(upload);
-
         upload.setError(error);
+
         return this.store.update(upload);
+      })
+      .then(() => {
+        if(this.deferred.length > 0) {
+          this.queueUpload(this.deferred.shift());
+        }
       });
   }
 
   uploadMultipart(upload) {
     debug('UPLOAD MULTIPART', upload.description, upload.position);
 
-    const parts = upload.getPendingParts();
+    const slots = this.queue.getSlots(RequestType.UPLOAD_PART);
+    const parts = upload.getPendingParts(Math.max(slots, 1));
     debug('QUEUE %s parts for', parts.length, upload.description);
 
     return Promise.all(
@@ -243,7 +243,12 @@ export default class Uploader {
             return this.store.update(upload);
           })
       )
-    );
+    )
+      .then(() => {
+        if(upload.position < upload.archiveSize) {
+          return this.uploadMultipart(upload);
+        }
+      });
   }
 
   uploadPart(upload, part) {

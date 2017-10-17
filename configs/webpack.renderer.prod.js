@@ -1,8 +1,8 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
 
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const paths = {
   root: path.resolve(''),
@@ -35,11 +35,6 @@ module.exports = {
       loader: 'eslint-loader',
     }, {
       test: /\.(jsx|js)$/,
-      enforce: 'post',
-      include: paths.source,
-      loader: 'react-hot-loader',
-    }, {
-      test: /\.(jsx|js)$/,
       include: paths.source,
       loader: 'babel-loader',
     }, {
@@ -57,8 +52,10 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.ENVIRONMENT': JSON.stringify('development'),
-      'process.env.NODE_ENV': JSON.stringify('production'),
+      'process.env': {
+        ENVIRONMENT: JSON.stringify('production'),
+        NODE_ENV: JSON.stringify('production'),
+      },
     }),
     new ExtractTextPlugin('style.css'),
     new HtmlWebpackPlugin({

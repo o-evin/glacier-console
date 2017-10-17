@@ -80,17 +80,22 @@ export default class Upload extends Validator {
     }, 0);
   }
 
-  getPendingParts() {
+  getPendingParts(count) {
     const parts = [];
 
     let position = this.position;
 
     while(position < this.archiveSize) {
+
       const size = Math.min(this.partSize, this.archiveSize - position);
 
       if(this.completedSequences.indexOf(position) < 0) {
         const range = `bytes ${position}-${position + size - 1}/*`;
         parts.push(new Part({size, range, position}));
+      }
+
+      if(count && parts.length === count) {
+        break;
       }
 
       position += size;
@@ -115,8 +120,8 @@ export default class Upload extends Validator {
   }
 
   setError(error) {
-    this.error = error.message || error.toString();
     this.status = UploadStatus.ERROR;
+    this.error = error.message || error.toString();
     return this;
   }
 

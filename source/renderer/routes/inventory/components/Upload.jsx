@@ -40,12 +40,13 @@ export default class ViewUpload extends PureComponent {
             </div>
           </div>
         }
-        <div className="content w-100 d-flex">
-          <div className="text-truncate p-2 align-self-center mr-auto"
-            title={title}>{title}</div>
-          <div className="text-nowrap">
+        <div className="content w-100 d-flex align-items-center text-nowrap">
+          <div className="text-truncate px-2 mr-auto" title={title}>
+            {title}
+          </div>
+          <div className="d-flex align-items-center">
             { status === UploadStatus.PROCESSING &&
-              <span className="p-2 d-inline-block align-middle text-primary">
+              <span className="text-primary">
                 { completion > 0 ? completion + '%' :
                   <i className="fa fa-spinner fa-pulse fa-lg"/>
                 }
@@ -53,9 +54,9 @@ export default class ViewUpload extends PureComponent {
             }
             { status === UploadStatus.ERROR &&
               <span>
-                <span className="p-2 d-inline-block align-middle" title={error}>
-                  <i className="fa fa-exclamation-circle fa-lg text-danger" />
-                </span>
+                <i className="fa fa-exclamation-circle fa-lg text-danger"
+                  title={error}
+                />
                 <ActionButton className="btn btn-small btn-secondary ml-2"
                   title="Retry"
                   onClick={this.restart.bind(this)}>
@@ -64,8 +65,8 @@ export default class ViewUpload extends PureComponent {
               </span>
             }
             { status === UploadStatus.DONE &&
-              <span className="align-middle">
-                <i className="fa fa-clock-o fa-lg ml-2 text-success"
+              <span className="text-success">
+                <i className="fa fa-clock-o fa-lg ml-2"
                   title={'Uploaded on ' +
                   moment(completedAt).format('D MMM, YYYY HH:mm') + '\n\n' +
                   'This archive has been successfully uploaded and is ' +

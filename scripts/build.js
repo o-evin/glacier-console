@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import chalk from 'chalk';
-import webpack from 'webpack';
+const chalk = require('chalk');
+const webpack = require('webpack');
 
 const env = process.env.ENVIRONMENT === 'production' ? 'prod' : 'dev';
 
@@ -45,9 +45,7 @@ webpack([main, renderer], (err, stats) => {
 
   }
 
-
   console.log(chalk.green('Done successfully!'));
   console.log();
-
 
 });

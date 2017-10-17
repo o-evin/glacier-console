@@ -97,7 +97,7 @@ export default class EditVault extends Component {
               }
             </div>
           </div>
-          <div className="form-group row hidden-xs-up" >
+          <div className="form-group row" hidden="true">
             <label className="col-sm-3 col-form-label">
               Notification Email
             </label>
@@ -117,9 +117,9 @@ export default class EditVault extends Component {
           </div>
 
           <div className="form-group row">
-            <div className="col-md-3 ml-md-auto col-sm-9 py-3">
+            <div className="col-sm-9 ml-sm-auto py-3">
               <ActionButton animate={true} onClick={this.onSubmit.bind(this)}
-                className="btn btn-success">
+                className="btn btn-primary">
                 {isEdit ? 'Update' : 'Create'}
               </ActionButton>
               <button className="btn btn-secondary ml-2" type="button"

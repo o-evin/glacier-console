@@ -28,13 +28,13 @@ export default class InventoryOperation extends PureComponent {
 
     return (
       <li className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="text-truncate p-2 align-self-center mr-auto"
+        <div className="content w-100 d-flex align-items-center text-nowrap">
+          <div className="text-truncate px-2 py-1 w-100"
             onClick={this.select.bind(this)} role="button">
             <i className="fa fa-database mr-2" />
             Synchronizing inventory for {inventoryRequest.vaultName}
           </div>
-          <div>
+          <div className="d-flex align-items-center">
             <ActionButton title="Abort"
               className="btn btn-small btn-secondary ml-2"
               onClick={this.abort.bind(this)}>

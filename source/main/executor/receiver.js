@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
-import Debug from 'debug';
 import {dialog} from 'electron';
 
 import Queue from './queue';
@@ -20,11 +19,14 @@ import {
 
 import {HandledRejectionError} from '../../contracts/errors';
 
-const debug = new Debug('executor:receiver');
+import logger from '../../utils/logger';
+const debug = logger('executor:receiver');
+const errlog = logger('executor:receiver', 'error');
 
 export default class Receiver {
 
   constructor(queue) {
+    this.deferred = [];
     this.queue = new Queue();
     this.waiter = new Waiter();
     this.store = new RetrievalStore();
@@ -65,45 +67,27 @@ export default class Receiver {
             });
         })
         .then((retrievals) => {
-          return this.actualizeRetrievals(retrievals);
+          const actual = retrievals.filter(
+            item => item.status !== RetrievalStatus.ERROR
+          );
+
+          if(actual.length === 0) return actual;
+          return this.actualizeRetrievals(actual);
         })
         .then((retrievals) => {
-
-          if(retrievals.length === 0) return retrievals;
-
-          const pending = retrievals.filter(item =>
-            item.status === RetrievalStatus.PENDING
-          );
-
-          if(pending.length > 0) {
-            debug('PENDING %s retrievals', pending.length);
-            pending.forEach(item => this.processRetrieval(item));
-          }
-
-          const processing = retrievals.filter(item =>
-            item.status === RetrievalStatus.PROCESSING
-          );
-
-          if(processing.length > 0) {
-            debug('ACTIVE %s retrievals', processing.length);
-            processing.forEach(item => this.download(item));
-          }
-
           debug('INIT DONE');
-
         })
         .catch((error) => {
 
           if(error instanceof HandledRejectionError) return;
 
-          debug('APP ERROR');
+          errlog('ERROR', error);
 
           dialog.showErrorBox('A fatal error',
             `Unable to start a receiver queue. Please restart the application.
             ${error.toString()}`
           );
 
-          debug('ERROR (%O)', error);
         });
 
     }
@@ -169,6 +153,11 @@ export default class Receiver {
 
   stopRetrieval(retrieval) {
     debug('STOP RETRIEVAL (%s)', retrieval.description);
+
+    this.deferred = this.deferred.filter(
+      item => item.id !== retrieval.id
+    );
+
     return Promise.all([
       this.queue.remove(retrieval),
       this.waiter.remove(retrieval),
@@ -188,39 +177,39 @@ export default class Receiver {
 
     debug('ACTUALIZE %s retrievals', retrievals.length);
 
-    return this.queue.push(glacier.listVaults)
-      .then((vaults) => {
-
-        debug('GLACIER VAULTS', vaults.length);
-
+    return retrievals.reduce((p, retrieval) => {
+      return p.then(() => {
         return this.queue.push(
-          vaults.map(
-            vault => glacier.listRetrievals.bind(null, vault)
-          )
-        )
-          .then((results) => {
-            const jobs = [].concat(...results);
+          glacier.describeRetrieval.bind(null, retrieval)
+        ).catch((error) => {
+          if(error.code === 'ResourceNotFoundException') {
+            return null;
+          }
+          throw error;
+        });
+      })
+        .then((job) => {
+          if(job) {
+            debug('RESTARTING', retrieval.description);
+            return this.store.get(job.id)
+              .then((retrieval) => {
+                if(retrieval) {
+                  if(retrieval.status === RetrievalStatus.PROCESSING) {
+                    this.download(retrieval);
+                  } else if(retrieval.status === RetrievalStatus.PENDING) {
+                    this.processRetrieval(retrieval);
+                  }
+                }
+              });
+          } else {
+            debug('EXPIRED', retrieval.description);
+            return this.store.remove(retrieval);
+          }
+        });
+    }, Promise.resolve());
 
-            debug('GLACIER JOBS', jobs.length);
-
-            return Promise.all(
-              retrievals.filter(
-                item => jobs.some(job => job.id === item.id) === false
-              ).map(
-                item => this.store.remove(item)
-              )
-            );
-          }).then((deleted) => {
-
-            debug('EXPIRED %s retrievals', deleted.length);
-
-            return retrievals.filter(
-              item => deleted.includes(item.id) === false
-            );
-
-          });
-      });
   }
+
 
   processRetrieval(retrieval) {
     return this.waiter.push(
@@ -228,13 +217,17 @@ export default class Receiver {
       {status: RetrievalStatus.PROCESSING},
       {reference: retrieval.id},
     )
+      .then(() => {
+        retrieval.status = RetrievalStatus.PROCESSING;
+        return this.store.update(retrieval);
+      })
       .then((retrieval) => {
-        return this.download(retrieval);
+        this.download(retrieval);
       })
       .catch((error) => {
         if(error instanceof HandledRejectionError) return;
 
-        debug('ERROR (retrieval: %s): %O', retrieval.description, error);
+        errlog('ERROR (retrieval: %s)', retrieval.description, error);
 
         retrieval.setError(error);
         return this.store.update(retrieval);
@@ -242,6 +235,15 @@ export default class Receiver {
   }
 
   download(retrieval) {
+
+    const slots = this.queue.getSlots(RequestType.UPLOAD_PART);
+
+    if(slots <= 0) {
+      debug('DEFER retrieval', retrieval.description);
+      this.deferred.push(retrieval);
+      return retrieval;
+    }
+
     debug('QUEUE retrieval', retrieval.description);
 
     const {filePath, archiveSize} = retrieval;
@@ -280,20 +282,26 @@ export default class Receiver {
 
         if(error instanceof HandledRejectionError) return;
 
-        debug('ERROR (retrieval: %s): %O', retrieval.description, error);
+        errlog('ERROR (retrieval: %s)', retrieval.description, error);
 
-        this.stopRetrieval(retrieval)
+        return this.stopRetrieval(retrieval)
           .then(() => {
             retrieval.setError(error);
             return this.store.update(retrieval);
           });
+      })
+      .then(() => {
+        if(this.deferred.length > 0) {
+          this.download(this.deferred.shift());
+        }
       });
   }
 
   downloadMultipart(retrieval) {
     debug('DOWNLOAD MULTIPART', retrieval.description, retrieval.position);
 
-    const parts = retrieval.getPendingParts();
+    const slots = this.queue.getSlots(RequestType.UPLOAD_PART);
+    const parts = retrieval.getPendingParts(Math.max(slots, 1));
     debug('QUEUE %s parts for', parts.length, retrieval.description);
 
     return Promise.all(
@@ -305,7 +313,12 @@ export default class Receiver {
             return this.store.update(retrieval);
           })
       )
-    );
+    )
+      .then(() => {
+        if(retrieval.position < retrieval.archiveSize) {
+          return this.downloadMultipart(retrieval);
+        }
+      });
   }
 
   downloadPart(retrieval, part) {
@@ -329,6 +342,7 @@ export default class Receiver {
         fs.writeSync(fd, data.body, 0, part.size, part.position);
 
         data.body = null;
+        fs.closeSync(fd);
 
         debug('RANGE DONE', retrieval.description, part.range);
 

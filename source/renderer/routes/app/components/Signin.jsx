@@ -77,7 +77,7 @@ export default class Signin extends Component {
               </div>
               <ActionButton animate={true}
                 onClick={this.onSubmit.bind(this)}
-                className="btn btn-success ml-auto" type="submit">
+                className="btn btn-primary ml-auto" type="submit">
                 Connect
               </ActionButton>
             </div>

@@ -2,32 +2,35 @@ import aws from './aws';
 
 import {Upload} from '../../../contracts/entities';
 
-export default function listUploads(vault, marker, uploads = []) {
+export default function listUploads({vaultName, marker, uploads = [],
+  limit = 1000}) {
 
   return new Promise((resolve, reject) => {
 
     const params = {
       marker,
-      vaultName: vault.name,
+      vaultName,
+      limit: limit.toString(),
     };
 
     aws.listMultipartUploads(params, (error, data) => {
 
       if(error) return reject(error);
 
-      uploads = uploads.concat(data.UploadsList.map(
+      const {UploadsList: list, Marker: marker} = data;
+
+      uploads = uploads.concat(list.map(
         item => new Upload({
+          vaultName,
           id: item.MultipartUploadId,
-          vaultName: vault.name,
-          vaultArn: item.VaultARN,
           partSize: item.PartSizeInBytes,
           createdAt: item.CreationDate,
           description: item.ArchiveDescription,
         })
       ));
 
-      if(data.Marker) {
-        return listUploads(vault, data.Marker, uploads)
+      if(marker) {
+        return listUploads({vaultName, marker, uploads, limit})
           .then(resolve);
       }
 

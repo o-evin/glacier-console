@@ -195,6 +195,8 @@ export default class TreeHash {
         tree.update(index, checksum);
       });
 
+    fs.closeSync(fd);
+
     return tree.checksum && tree.checksum.toString('hex');
   }
 

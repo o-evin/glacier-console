@@ -5,6 +5,7 @@ export listVaults from './list_vaults';
 export describeVault from './describe_vault';
 export initiateUpload from './initiate_upload';
 export completeUpload from './complete_upload';
+export getUpload from './get_upload';
 export uploadPart from './upload_part';
 export listUploads from './list_uploads';
 export abortUpload from './abort_upload';

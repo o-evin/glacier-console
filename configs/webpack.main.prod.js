@@ -1,5 +1,5 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
 
 const paths = {
   root: path.resolve(''),
@@ -11,7 +11,7 @@ const paths = {
 
 module.exports = {
   devtool: 'nosources-source-map',
-  target: 'electron-main',
+  target: 'electron',
   context: paths.root,
   entry: [
     './source/main/index',
@@ -22,16 +22,16 @@ module.exports = {
   },
   resolve: {
     modules: [paths.modules],
-    extensions: ['.js', '.json', '.node'],
+    extensions: ['.js', '.json'],
   },
   module: {
     rules: [{
-      test: /\.(jsx|js)$/,
+      test: /\.js$/,
       include: paths.source,
       enforce: 'pre',
       loader: 'eslint-loader',
     }, {
-      test: /\.(jsx|js)$/,
+      test: /\.js$/,
       include: paths.source,
       loader: 'babel-loader',
     }, {

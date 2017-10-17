@@ -1,3 +1,4 @@
+import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
 
@@ -8,6 +9,7 @@ import ViewRetrieval from '../components/Retrieval';
 import ViewSummary from '../components/Summary';
 
 import ListEmptyItem from '../../../controls/ListEmptyItem';
+import ListLoadingItem from '../../../controls/ListLoadingItem';
 
 import {
   Archive,
@@ -34,8 +36,36 @@ export default class ListInventory extends PureComponent {
     onDisplay: PropTypes.func.isRequired,
   }
 
-  getContextItems() {
-    const {prefix} = this.props;
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      listHeight: null,
+      itemHeight: null,
+      scrollTop: 0,
+      items: this.getContextItems(props),
+    };
+
+    this.handleScroll = this.handleScroll.bind(this);
+  }
+
+  componentDidMount() {
+    const {clientHeight: listHeight} = ReactDOM.findDOMNode(this.refs.list);
+    const {clientHeight: itemHeight} = ReactDOM.findDOMNode(this.refs.loading);
+    this.setState({itemHeight, listHeight});
+  }
+
+  componentWillReceiveProps(props) {
+    this.setState({items: this.getContextItems(props)});
+  }
+
+  handleScroll(event) {
+    const {scrollTop} = event.target;
+    this.setState({scrollTop});
+  }
+
+  getContextItems(props) {
+    const {prefix} = props;
 
     const folders = new Map();
 
@@ -52,70 +82,101 @@ export default class ListInventory extends PureComponent {
       });
     };
 
-    group(this.props.archives, folders, 'archives');
+    group(props.archives, folders, 'archives');
 
     folders.forEach((folder) => {
-      folder.retrievals = this.props.retrievals.filter(
+      folder.retrievals = props.retrievals.filter(
         item => folder.archives.some(entry => entry.id === item.archiveId)
       );
     });
 
-    group(this.props.uploads, folders, 'uploads');
+    group(props.uploads, folders, 'uploads');
 
     if(folders.has(prefix)) {
       var current = folders.get(prefix);
       folders.delete(prefix);
     }
 
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
+
     const entries = Array.from(folders.values())
-      .sort((a, b) => a.title.localeCompare(b.title));
+      .sort((a, b) => collator.compare(a.title, b.title));
 
     if(current) {
       const {uploads, retrievals} = current;
+
       const archives = current.archives.map(item =>
         retrievals.find(entry => entry.archiveId === item.id) || item
       );
 
-      entries.concat(uploads, archives);
+      entries.push(...uploads);
+      entries.push(...archives);
+    }
+
+    if(prefix.length > 0) {
+      entries.unshift(
+        new Folder({prefix: prefix + '../'})
+      );
     }
 
     return entries;
   }
 
   render() {
-    const {prefix} = this.props;
-    const items = this.getContextItems();
+    const visibleItems = [];
+    const {itemHeight} = this.state;
+
+    if(itemHeight) {
+      const {listHeight, scrollTop, items} = this.state;
+
+      const sliceTop = Math.floor(scrollTop / itemHeight);
+      const sliceCount = Math.ceil(listHeight / itemHeight) + 5;
+
+      var paddingTop = sliceTop * itemHeight;
+      var minHeight = items.length * itemHeight;
+
+      visibleItems.push(...items.slice(sliceTop, sliceTop + sliceCount));
+
+      if(items.length === 0) {
+        visibleItems.push(<ListEmptyItem key="empty" />);
+      }
+
+    } else {
+      visibleItems.push(
+        <ListLoadingItem ref="loading" key="loading" />
+      );
+    }
+
     return (
-      <div className="inventory-list mt-3">
-        <ul className="list-group list-progress mb-3">
-          { prefix.length > 0 &&
-            <ViewFolder
-              open={true}
-              prefix={prefix + '../'}
-              onSelect={this.props.onNavigate}
-            />
-          }
-          { items.map(this.renderEntry, this) }
-          { !items.length && <ListEmptyItem /> }
+      <div className="inventory-list mt-3" ref="list"
+        onScroll={this.handleScroll}>
+        <ul className="list-group list-progress mb-3"
+          style={{minHeight, paddingTop}}>
+          {visibleItems.map(this.renderEntry, this)}
         </ul>
       </div>
     );
   }
 
-
-  renderEntry(entry, idx) {
+  renderEntry(entry) {
 
     if(entry instanceof Folder) {
       return (
         <ViewFolder
-          key={idx}
+          key={entry.prefix}
           prefix={entry.prefix}
+          open={entry.prefix.endsWith('../')}
           onSelect={this.props.onNavigate}>
-          <ViewSummary
-            uploads={entry.uploads}
-            archives={entry.archives}
-            retrievals={entry.retrievals}
-          />
+          { entry.hasStats &&
+            <ViewSummary
+              uploads={entry.uploads}
+              archives={entry.archives}
+              retrievals={entry.retrievals}
+            />
+          }
         </ViewFolder>
       );
     }
@@ -123,7 +184,7 @@ export default class ListInventory extends PureComponent {
     if(entry instanceof Upload) {
       return (
         <ViewUpload
-          key={idx}
+          key={entry.id}
           upload={entry}
           onRemove={this.props.onRemoveUpload}
           onRestart={this.props.onRestartUpload}
@@ -134,7 +195,7 @@ export default class ListInventory extends PureComponent {
     if(entry instanceof Retrieval) {
       return (
         <ViewRetrieval
-          key={idx}
+          key={entry.id}
           retrieval={entry}
           onRemove={this.props.onRemoveRetrieval}
           onRestart={this.props.onRestartRetrieval}
@@ -146,13 +207,15 @@ export default class ListInventory extends PureComponent {
     if(entry instanceof Archive) {
       return (
         <ViewArchive
-          key={idx}
+          key={entry.id}
           archive={entry}
           onRemove={this.props.onRemoveArchive}
           onRetrieve={this.props.onRetrieve}
         />
       );
     }
+
+    return entry;
 
   }
 

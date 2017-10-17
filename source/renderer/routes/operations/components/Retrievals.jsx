@@ -54,7 +54,7 @@ export default class Retrievals extends PureComponent {
 
     const totalSize = retrievals.reduce((sum, i) => sum + i.archiveSize, 0);
     const finishedSize = retrievals.reduce((sum, i) => sum + i.finishedSize, 0);
-    const completion = Math.round((finishedSize / totalSize) * 100);
+    const completion = +((finishedSize / totalSize) * 100).toFixed(2);
 
     return (
       <li className="list-group-item p-1">
@@ -63,11 +63,11 @@ export default class Retrievals extends PureComponent {
             style={{width: completion + '%'}}>
           </div>
         </div>
-        <div className="content w-100 d-flex">
-          <div className="text-truncate p-2 align-self-center mr-auto"
+        <div className="content w-100 d-flex align-items-center text-nowrap">
+          <div className="text-truncate px-2 py-1 w-100"
             onClick={this.select.bind(this)} role="button">
             <i className="fa fa-download mr-2" />
-            Retrieving from {vaultName}
+            <span>Retrieving from {vaultName}</span>
             <span hidden={errors.length === 0} title="Failed operations."
               className="badge badge-danger badge-pill ml-2">
               {errors.length}
@@ -88,14 +88,9 @@ export default class Retrievals extends PureComponent {
               {finished.length}
             </span>
           </div>
-          <div className="text-nowrap">
-            <span className="p-2 d-inline-block align-middle text-primary">
-              { completion > 0 ? completion + '%' :
-                (
-                  processing.length > 0 &&
-                    <i className="fa fa-spinner fa-pulse fa-lg"/>
-                )
-              }
+          <div className="d-flex align-items-center">
+            <span className="text-primary">
+              {completion + '%'}
             </span>
             <ActionButton hidden={errors.length === 0} title="Retry"
               className="btn btn-small btn-secondary ml-2"

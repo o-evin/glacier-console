@@ -49,11 +49,11 @@ export default class ViewRetrieval extends PureComponent {
           </div>
         }
         <div className="content w-100 d-flex">
-          <div className="text-truncate p-2 align-self-center mr-auto"
+          <div className="text-truncate px-2 align-self-center mr-auto"
             title={title}>{title}</div>
           <div className="text-nowrap">
             { status === RetrievalStatus.PROCESSING &&
-              <span className="p-2 d-inline-block align-middle text-primary">
+              <span className="align-middle text-primary">
                 { completion > 0 ? completion + '%' :
                   <i className="fa fa-spinner fa-pulse fa-lg"/>
                 }
@@ -70,9 +70,9 @@ export default class ViewRetrieval extends PureComponent {
             }
             { status === RetrievalStatus.ERROR &&
               <span>
-                <span className="p-2 d-inline-block align-middle" title={error}>
-                  <i className="fa fa-exclamation-circle fa-lg text-danger" />
-                </span>
+                <i className="fa fa-exclamation-circle fa-lg text-danger"
+                  title={error}
+                />
                 <button className="btn btn-small btn-secondary ml-2"
                   title="Retry" onClick={this.restart.bind(this)}>
                   <i className="fa fa-refresh" />

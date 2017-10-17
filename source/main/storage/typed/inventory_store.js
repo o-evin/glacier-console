@@ -3,7 +3,8 @@ import {ActionType} from '../../../contracts/enums';
 
 const actions = {
   list: ActionType.INVENTORY_LIST_SUCCESS,
-  update: ActionType.INVENTORY_UPDATE_SUCCESS,
+  create: ActionType.INVENTORY_UPDATE_SUCCESS,
+  replace: ActionType.INVENTORY_UPDATE_SUCCESS,
   remove: ActionType.INVENTORY_REMOVE_SUCCESS,
   listRetrievals: ActionType.INVENTORY_INIT_SUCCESS,
   removeRetrieval: ActionType.INVENTORY_REMOVE_RETRIEVAL,

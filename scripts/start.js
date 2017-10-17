@@ -1,15 +1,15 @@
 /* eslint-disable no-console */
-import chalk from 'chalk';
-import webpack from 'webpack';
-import detect from 'detect-port';
-import prompt from 'prompt';
+const chalk = require('chalk');
+const webpack = require('webpack');
+const detect = require('detect-port');
+const prompt = require('prompt');
 
-import WebpackDevServer from 'webpack-dev-server';
+const WebpackDevServer = require('webpack-dev-server');
 
-import main from '../configs/webpack.main.dev.js';
-import renderer from '../configs/webpack.renderer.dev.js';
+const main = require('../configs/webpack.main.dev.js');
+const renderer = require('../configs/webpack.renderer.dev.js');
 
-import {exec} from 'child_process';
+const {exec} = require('child_process');
 
 const DEFAULT_PORT = process.env.PORT || 8080;
 
@@ -28,6 +28,9 @@ function compile() {
     port: DEFAULT_PORT,
     historyApiFallback: true,
     contentBase: renderer.output.path,
+    watchOptions: {
+      ignored: /node_modules/,
+    },
   };
 
   WebpackDevServer.addDevServerEntrypoints(renderer, options);

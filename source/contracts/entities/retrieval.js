@@ -105,18 +105,21 @@ export default class Retrieval extends Validator {
     }, 0);
   }
 
-  getPendingParts() {
+  getPendingParts(count) {
     const parts = [];
 
     let position = this.position;
 
     while(position < this.archiveSize) {
-
       const size = Math.min(this.partSize, this.archiveSize - position);
 
-      if(this.completedSequences.indexOf(position) < 0) {
+      if(this.completedSequences.indexOf(position) === -1) {
         const range = `bytes=${position}-${position + size - 1}`;
         parts.push(new Part({size, range, position}));
+      }
+
+      if(count && parts.length === count) {
+        break;
       }
 
       position += size;
@@ -126,15 +129,17 @@ export default class Retrieval extends Validator {
   }
 
   addSequence(position) {
+
     if(this.position === position) {
       this.position += Math.min(this.partSize, this.archiveSize - position);
 
       const nextIndex = this.completedSequences.indexOf(this.position);
 
-      if(nextIndex >= 0) {
+      if(nextIndex !== -1) {
         this.completedSequences.splice(nextIndex, 1);
         this.addSequence(this.position);
       }
+
     } else {
       this.completedSequences.push(position);
     }

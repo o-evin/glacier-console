@@ -9,7 +9,10 @@ import {
   UPLOAD_DELETE_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
-const compare = (a, b) => (a.createdAt - b.createdAt);
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
 
 function cast(data) {
   return Array.isArray(data) ?
@@ -27,7 +30,7 @@ export default function(state = {}, action) {
       return {
         ...state,
         list: listUpdate(state.list, cast(action.payload))
-          .sort(compare),
+          .sort((a, b) => collator.compare(a.description, b.description)),
       };
 
     case UPLOAD_DELETE_SUCCESS:

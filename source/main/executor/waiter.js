@@ -1,11 +1,10 @@
-import Debug from 'debug';
 import Queue from './queue';
-
 import {Transfer} from '../../contracts/const';
 import {RequestType} from '../../contracts/enums';
 import {WaiterJob} from '../../contracts/entities';
 
-const debug = new Debug('executor:waiter');
+import logger from '../../utils/logger';
+const debug = logger('executor:waiter');
 
 export default class Waiter {
 

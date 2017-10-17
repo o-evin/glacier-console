@@ -21,11 +21,10 @@ const defaults = {
   },
 };
 
+global.glacier = glacier;
 global.config = new ConfigStore({defaults});
 
 const jobExecutor = new JobExecutor();
-
-global.glacier = glacier;
 global.jobExecutor = jobExecutor;
 
 global.auth = {

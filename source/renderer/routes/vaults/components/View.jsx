@@ -26,7 +26,7 @@ export default class ViewVault extends PureComponent {
   removeVault() {
     if(confirm('Are you sure you want to permanently delete this vault ' +
       'and all its content?')) {
-      return this.props.onRemove(this.props.vault);
+      return this.props.onRemove(this.props.vault, '/vaults/');
     }
   }
 

@@ -8,9 +8,15 @@ export default function uploadPart({upload, part}) {
   return new Promise((resolve, reject) => {
 
     const data = Buffer.alloc(part.size);
-    const fd = fs.openSync(upload.filePath, 'r');
 
-    fs.readSync(fd, data, 0, part.size, part.position);
+    try {
+      const fd = fs.openSync(upload.filePath, 'r');
+      fs.readSync(fd, data, 0, part.size, part.position);
+      fs.closeSync(fd);
+
+    } catch(error) {
+      reject(error);
+    }
 
     const params = {
       body: data,

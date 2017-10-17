@@ -1,8 +1,8 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
 
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const paths = {
   root: path.resolve(''),
@@ -56,8 +56,11 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.ENVIRONMENT': JSON.stringify('development'),
-      'process.env.PORT': JSON.stringify('8080'),
+      'process.env': {
+        ENVIRONMENT: JSON.stringify('development'),
+        NODE_ENV: JSON.stringify('development'),
+        PORT: JSON.stringify('8080'),
+      },
     }),
     new ExtractTextPlugin('style.css'),
     new HtmlWebpackPlugin({

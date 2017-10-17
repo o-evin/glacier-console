@@ -11,7 +11,10 @@ import {
   INVENTORY_REMOVE_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
-const compare = (a, b) => (b.createdAt - a.createdAt);
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
 
 function updateInventory(state, payload) {
 
@@ -40,7 +43,8 @@ function updateInventory(state, payload) {
 
   return {
     ...state,
-    archives: archiveUpdates.sort(compare),
+    archives: archiveUpdates
+      .sort((a, b) => collator.compare(a.description, b.description)),
     list: inventoryUpdates,
   };
 

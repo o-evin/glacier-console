@@ -21,4 +21,8 @@ export default class Folder {
     });
   }
 
+  get hasStats() {
+    return this.uploads.length > 0 || this.archives.length > 0;
+  }
+
 }

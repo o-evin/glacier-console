@@ -1,6 +1,4 @@
 import path from 'path';
-import Debug from 'debug';
-
 import {isFunction} from 'lodash';
 
 import {glacier} from '../api';
@@ -10,7 +8,8 @@ import Uploader from './uploader';
 import Receiver from './receiver';
 import Inventorizer from './inventorizer';
 
-const debug = new Debug('executor:main');
+import logger from '../../utils/logger';
+const debug = logger('executor:main');
 
 export default class JobExecutor {
 
@@ -25,7 +24,7 @@ export default class JobExecutor {
     return Promise.all([
       this.uploader.removeAll({vaultName}),
       this.receiver.removeAll({vaultName}),
-      this.inventorizer.removeInventory(vaultName),
+      this.inventorizer.removeAll({vaultName}),
     ]).then(() => {
       return this.queue.push(
         glacier.deleteVault.bind(null, vaultName)
@@ -45,13 +44,7 @@ export default class JobExecutor {
 
   removeArchive(archive) {
     debug('REMOVE ARCHIVE', archive.description);
-
-    return this.queue.push(
-      glacier.deleteArchive.bind(null, archive.id, archive.vaultName)
-    )
-      .then(() => {
-        return this.inventorizer.removeArchive(archive);
-      });
+    return this.inventorizer.removeArchive(archive);
   }
 
   requestUpload(params) {

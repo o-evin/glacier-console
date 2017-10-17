@@ -1,4 +1,3 @@
-import Debug from 'debug';
 import {dialog} from 'electron';
 
 import Queue from './queue';
@@ -14,7 +13,9 @@ import {
 
 import {HandledRejectionError} from '../../contracts/errors';
 
-const debug = new Debug('executor:inventorizer');
+import logger from '../../utils/logger';
+const debug = logger('executor:inventorizer');
+const errlog = logger('executor:inventorizer', 'error');
 
 export default class Inventorizer {
 
@@ -23,6 +24,7 @@ export default class Inventorizer {
     this.waiter = new Waiter();
     this.store = new InventoryStore();
     this.status = QueueStatus.PENDING;
+
   }
 
   start() {
@@ -50,14 +52,13 @@ export default class Inventorizer {
 
           if(error instanceof HandledRejectionError) return;
 
-          debug('APP ERROR');
+          errlog('ERROR', error);
 
           dialog.showErrorBox('A fatal error',
             `Unable to start a receiver queue. Please restart the application.
             ${error.toString()}`
           );
 
-          debug('ERROR (%O)', error);
         });
 
     }
@@ -74,9 +75,7 @@ export default class Inventorizer {
 
         if(error instanceof HandledRejectionError) return;
 
-        debug('INVENTORY ERROR (id: %s): %O',
-          retrieval.description, error
-        );
+        errlog('INVENTORY ERROR (id: %s)', retrieval.description, error);
 
         this.store.removeRetrieval(retrieval);
       });
@@ -116,19 +115,41 @@ export default class Inventorizer {
     debug('REMOVE %s from inventory %s',
       archive.description, archive.vaultName);
 
-    return this.store.get(archive.vaultName)
-      .then((inventory) => {
-
-        inventory.archives = inventory.archives.filter(
-          item => item.id !== archive.id
-        );
-
-        return this.store.replace(inventory);
+    return this.queue.push(
+      glacier.deleteArchive.bind(null, archive.id, archive.vaultName)
+    )
+      .then(() => {
+        return this.store.get(archive.vaultName)
+          .then((inventory) => {
+            inventory.archives = inventory.archives.filter(
+              item => item.id !== archive.id
+            );
+            inventory.sizeInBytes -= archive.size;
+            inventory.numberOfArchives -= 1;
+            return this.store.replace(inventory);
+          });
       });
   }
 
-  removeInventory(vaultName) {
-    return this.store.remove(vaultName);
+  removeAll(criterion) {
+    return this.store.findOneRetrieval(criterion)
+      .then((retrieval) => {
+        if(retrieval) {
+          return this.store.removeRetrieval(retrieval);
+        }
+      })
+      .then(() => {
+        return this.store.get(criterion.vaultName);
+      })
+      .then((inventory) => {
+        if(inventory) {
+          return Promise.all(
+            inventory.archives.map(item => this.removeArchive(item))
+          ).then(() => {
+            return this.store.remove(inventory);
+          });
+        }
+      });
   }
 
   requestInventory(vaultName) {
@@ -285,7 +306,6 @@ export default class Inventorizer {
       })
       .then((inventory) => {
 
-        //TODO: refactor this
         const {uploader, receiver} = global.jobExecutor;
 
         return Promise.all([
@@ -302,9 +322,7 @@ export default class Inventorizer {
 
         if(error instanceof HandledRejectionError) return;
 
-        debug('INVENTORY ERROR (id: %s): %O',
-          retrieval.description, error
-        );
+        errlog('INVENTORY ERROR (id: %s)', retrieval.description, error);
 
         this.store.removeRetrieval(retrieval);
       });

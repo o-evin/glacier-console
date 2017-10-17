@@ -9,7 +9,10 @@ import {
   VAULT_DELETE_SUCCESS,
 } from '../../../contracts/enums/action_types';
 
-const compare = (a, b) => (b.createdAt - a.createdAt);
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
 
 function cast(data) {
   return Array.isArray(data) ?
@@ -26,7 +29,7 @@ export default function(state = {}, action) {
       return {
         ...state,
         list: listUpdate(state.list, cast(action.payload))
-          .sort(compare),
+          .sort((a, b) => collator.compare(a.name, b.name)),
       };
 
     case VAULT_DELETE_SUCCESS:

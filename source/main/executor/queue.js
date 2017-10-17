@@ -1,4 +1,3 @@
-import Debug from 'debug';
 import Waiter from './waiter';
 import Counter from './counter';
 
@@ -7,7 +6,9 @@ import {Transfer, Time} from '../../contracts/const';
 import {RequestType, QueueStatus} from '../../contracts/enums';
 import {QueueRejectError, HandledRejectionError} from '../../contracts/errors';
 
-const debug = new Debug('executor:queue');
+import logger from '../../utils/logger';
+const debug = logger('executor:queue');
+const errlog = logger('executor:queue', 'error');
 
 export default class Queue {
 
@@ -33,6 +34,10 @@ export default class Queue {
     }
   }
 
+  getSlots(type) {
+    return this.counter.getSlots(type);
+  }
+
   initInterval() {
     if(!this.interval)  {
       this.interval = setInterval(() => {
@@ -51,7 +56,7 @@ export default class Queue {
       throw new QueueRejectError();
     }
 
-    if(options.reference && Object(options.reference)) {
+    if(options.reference && options.reference === Object(options.reference)) {
       options.reference = options.reference.id;
     }
 
@@ -109,16 +114,18 @@ export default class Queue {
       .catch((error) => {
 
         if(!(error instanceof HandledRejectionError)) {
-          debug('ERROR %s (type: %s, reference: %s): %O',
+          errlog('ERROR %s (type: %s, reference: %s)',
             handler.name, job.type, job.reference, error
           );
 
           if(attempt <= Transfer.QUEUE_RETRY_ATTEMPTS) {
+
             debug('RETRY %s attempt %s (type: %s, reference: %s)',
               handler.name, attempt, job.type, job.reference
             );
 
-            return this.runner(job, attempt + 1);
+            return this.runner(job, attempt + 1)
+              .catch(job.reject);
           }
         } else {
           debug('CANCELLED %s (type: %s)', handler.name, job.type);
@@ -136,7 +143,7 @@ export default class Queue {
 
   remove(entry) {
 
-    const reference = entry === Object(entry) ? entry.id : entry;
+    const reference = entry.id || entry;
 
     this.queue = this.queue.filter(
       item => item.reference !== reference

@@ -9,7 +9,6 @@ export default function describeVault(vaultName) {
       if(error) return reject(error);
 
       const vault = new Vault({
-        arn: data.VaultARN,
         name: data.VaultName,
         createdAt: data.CreationDate,
         sizeInBytes: data.SizeInBytes,

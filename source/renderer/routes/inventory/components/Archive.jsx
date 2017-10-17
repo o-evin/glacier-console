@@ -42,10 +42,11 @@ export default class ViewArchive extends PureComponent {
 
     return (
       <li className="list-group-item p-1">
-        <div className="content w-100 d-flex">
-          <div className="text-truncate p-2 align-self-center mr-auto"
-            title={title}>{title}</div>
-          <div className="text-nowrap">
+        <div className="content w-100 d-flex align-items-center text-nowrap">
+          <div className="text-truncate px-2 mr-auto" title={title}>
+            {title}
+          </div>
+          <div className="d-flex align-items-center">
             <Dropdown className="dropdown btn-group ml-2">
               <ActionButton className="btn btn-secondary"
                 onClick={this.retrieve.bind(this, RetrievalTier.STANDARD)} >

@@ -8,6 +8,7 @@ export default new Map([
   [AwsRegion.CANADA_CENTRAL, {name: 'Canada (Central)'}],
   [AwsRegion.ASIA_PACIFIC_MUMBAI, {name: 'Asia Pacific (Mumbai)'}],
   [AwsRegion.ASIA_PACIFIC_SEOUL, {name: 'Asia Pacific (Seoul)'}],
+  [AwsRegion.ASIA_PACIFIC_SINGAPORE, {name: 'Asia Pacific (Singapore)'}],
   [AwsRegion.ASIA_PACIFIC_SYDNEY, {name: 'Asia Pacific (Sydney)'}],
   [AwsRegion.ASIA_PACIFIC_TOKYO, {name: 'Asia Pacific (Tokyo)'}],
   [AwsRegion.EU_FRANKFURT, {name: 'EU (Frankfurt)'}],

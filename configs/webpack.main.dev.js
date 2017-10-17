@@ -1,5 +1,5 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
 
 const paths = {
   root: path.resolve(''),
@@ -10,7 +10,7 @@ const paths = {
 };
 
 module.exports = {
-  target: 'electron-main',
+  target: 'electron',
   context: paths.root,
   entry: [
     './source/main',
@@ -21,16 +21,16 @@ module.exports = {
   },
   resolve: {
     modules: [paths.modules],
-    extensions: ['.js', '.json', '.node'],
+    extensions: ['.js', '.json'],
   },
   module: {
     rules: [{
-      test: /\.(jsx|js)$/,
+      test: /\.js$/,
       include: paths.source,
       enforce: 'pre',
       loader: 'eslint-loader',
     }, {
-      test: /\.(jsx|js)$/,
+      test: /\.js$/,
       include: paths.source,
       loader: 'babel-loader',
     }, {
@@ -41,10 +41,12 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.ENVIRONMENT': JSON.stringify('development'),
-      'process.env.PORT': JSON.stringify('8080'),
+      'process.env': {
+        ENVIRONMENT: JSON.stringify('development'),
+        NODE_ENV: JSON.stringify('development'),
+        PORT: JSON.stringify('8080'),
+      },
     }),
-    new webpack.HotModuleReplacementPlugin(),
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.NamedModulesPlugin(),
     new webpack.optimize.ModuleConcatenationPlugin(),
