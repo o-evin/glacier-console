@@ -31,30 +31,25 @@ global.auth = {
   aws: null,
 };
 
+const appPath = app.getAppPath();
+
 app.on('ready', createWindow);
 
 function createWindow() {
 
   win = new BrowserWindow({
     show: false,
-    icon: path.join(app.getAppPath(), 'build', logo),
+    icon: path.resolve(appPath, 'build', logo),
   });
 
+  win.loadURL(url.format({
+    pathname: path.resolve(appPath, 'build', 'index.html'),
+    protocol: 'file:',
+    slashes: true,
+  }));
+
   if(process.env.ENVIRONMENT === 'development') {
-
-    const port = process.env.PORT || 8080;
-
-    win.loadURL(`http://localhost:${port}/index.html`);
     win.webContents.openDevTools();
-
-  } else {
-
-    win.loadURL(url.format({
-      pathname: path.join(app.getAppPath(), 'build/index.html'),
-      protocol: 'file:',
-      slashes: true,
-    }));
-
   }
 
   win.once('ready-to-show', () => {

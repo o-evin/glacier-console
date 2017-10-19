@@ -1,5 +1,3 @@
-import 'moment-timezone';
-import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import thunkMiddleware from 'redux-thunk';
@@ -15,8 +13,6 @@ import reducers from './modules/reducers';
 import {authenticate} from './modules/auth/actions';
 
 import './assets/stylesheets/main.scss';
-
-moment.tz.setDefault(moment.tz.guess());
 
 const history = createMemoryHistory();
 const routerHistoryMiddleware = routerMiddleware(history);
@@ -57,7 +53,8 @@ if(creds && creds.key && creds.secret) {
 } else {
   render();
 }
-
+/*
 if (module.hot) {
   module.hot.accept();
 }
+*/

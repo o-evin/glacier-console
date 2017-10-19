@@ -1,20 +1,23 @@
 const path = require('path');
 const webpack = require('webpack');
 
+//const nodeExternals = require('webpack-node-externals');
+
 const paths = {
   root: path.resolve(''),
-  source: path.resolve('source'),
   build: path.resolve('build'),
+  source: path.resolve('source'),
   modules: path.resolve('node_modules'),
   assets: path.resolve('source/main/assets'),
 };
 
 module.exports = {
   devtool: 'nosources-source-map',
-  target: 'electron',
+  target: 'electron-main',
   context: paths.root,
+  //externals: [nodeExternals()],
   entry: [
-    './source/main/index',
+    './source/main',
   ],
   output: {
     filename: 'main.js',

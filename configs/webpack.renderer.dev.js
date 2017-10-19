@@ -4,6 +4,8 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
+var nodeExternals = require('webpack-node-externals');
+
 const paths = {
   root: path.resolve(''),
   build: path.resolve('build'),
@@ -13,8 +15,10 @@ const paths = {
 };
 
 module.exports = {
+  devtool: 'eval',
   target: 'electron-renderer',
   context: paths.root,
+  externals: [nodeExternals()],
   entry: [
     './source/renderer',
   ],
@@ -32,11 +36,6 @@ module.exports = {
       include: paths.source,
       enforce: 'pre',
       loader: 'eslint-loader',
-    }, {
-      test: /\.(jsx|js)$/,
-      enforce: 'post',
-      include: paths.source,
-      loader: 'react-hot-loader',
     }, {
       test: /\.(jsx|js)$/,
       include: paths.source,
@@ -59,14 +58,13 @@ module.exports = {
       'process.env': {
         ENVIRONMENT: JSON.stringify('development'),
         NODE_ENV: JSON.stringify('development'),
-        PORT: JSON.stringify('8080'),
       },
     }),
     new ExtractTextPlugin('style.css'),
     new HtmlWebpackPlugin({
       template: 'source/renderer/index.html',
     }),
-    new webpack.HotModuleReplacementPlugin(),
+    //new webpack.HotModuleReplacementPlugin(),
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.NamedModulesPlugin(),
     new webpack.optimize.ModuleConcatenationPlugin(),

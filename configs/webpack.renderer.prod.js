@@ -4,6 +4,8 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
+//const nodeExternals = require('webpack-node-externals');
+
 const paths = {
   root: path.resolve(''),
   build: path.resolve('build'),
@@ -16,6 +18,7 @@ module.exports = {
   devtool: 'nosources-source-map',
   target: 'electron-renderer',
   context: paths.root,
+  //externals: [nodeExternals()],
   entry: [
     './source/renderer',
   ],

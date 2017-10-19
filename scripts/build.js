@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const chalk = require('chalk');
 const webpack = require('webpack');
+const EventEmitter = require('events');
 
 const env = process.env.ENVIRONMENT === 'production' ? 'prod' : 'dev';
 
@@ -8,44 +9,26 @@ const main = require(`../configs/webpack.main.${env}.js`);
 const renderer = require(`../configs/webpack.renderer.${env}.js`);
 
 console.log(chalk.cyan(`Compiling project (${env})...`));
-console.log();
 
-webpack([main, renderer], (err, stats) => {
+const emitter = new EventEmitter();
 
-  const json = stats.toJson();
+webpack([main, renderer], (error, stats) => {
+  if(error) throw error;
+  emitter.emit('done', stats.toJson());
+});
 
-  if (stats.hasErrors()) {
+emitter.on('done', (stats) => {
+
+  if(stats.errors.length) {
     console.log(chalk.red('Failed to compile.'));
-    console.log();
-    json.errors.forEach((message) => {
-      console.log(message);
-      console.log();
-    });
-    return;
+    return stats.errors.forEach(error => console.log(error));
   }
 
-  if (stats.hasWarnings()) {
+  if(stats.warnings.length) {
     console.log(chalk.yellow('Compiled with warnings.'));
-    console.log();
-
-    json.warnings.forEach((message) => {
-      console.log(message);
-      console.log();
-    });
-
-    console.log();
-    console.log('You may use special comments to disable some warnings.');
-    console.log('Use ' + chalk.yellow('// eslint-disable-next-line') +
-      ' to ignore the next line.');
-    console.log('Use ' + chalk.yellow('/* eslint-disable */') +
-      ' to ignore all warnings in a file.');
-    console.log();
-
-    return;
-
+    return stats.warnings.forEach(warning => console.log(warning));
   }
 
   console.log(chalk.green('Done successfully!'));
-  console.log();
 
 });

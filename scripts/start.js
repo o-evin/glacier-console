@@ -9,7 +9,8 @@ const WebpackDevServer = require('webpack-dev-server');
 const main = require('../configs/webpack.main.dev.js');
 const renderer = require('../configs/webpack.renderer.dev.js');
 
-const {exec} = require('child_process');
+const proc = require('child_process');
+const electron = require('electron');
 
 const DEFAULT_PORT = process.env.PORT || 8080;
 
@@ -28,9 +29,6 @@ function compile() {
     port: DEFAULT_PORT,
     historyApiFallback: true,
     contentBase: renderer.output.path,
-    watchOptions: {
-      ignored: /node_modules/,
-    },
   };
 
   WebpackDevServer.addDevServerEntrypoints(renderer, options);
@@ -74,7 +72,8 @@ function compile() {
     console.log();
 
     new WebpackDevServer(compiler.compilers.shift(), options)
-      .listen(DEFAULT_PORT, (err, result) => {
+      .listen(options.port, options.host, (err, result) => {
+
         if (err) {
           return console.log(err);
         }
@@ -82,7 +81,7 @@ function compile() {
         console.log(chalk.cyan('Starting electron...'));
         console.log();
 
-        const child = exec('npm run electron');
+        const child = proc.spawn(electron, ['.'], {cwd: process.cwd()});
 
         child.stdout.pipe(process.stdout);
         child.stderr.pipe(process.stderr);
@@ -109,10 +108,11 @@ detect(DEFAULT_PORT).then((port) => {
   prompt(question, true)
     .then((shouldTerminate) => {
       if (shouldTerminate) {
-        exec('kill -9 $(lsof -t -i:' + DEFAULT_PORT + ' -c node -a)', (err) => {
-          if (err) return console.log(`exec error: ${err}`);
-          compile();
-        });
+        proc.exec('kill -9 $(lsof -t -i:' + DEFAULT_PORT + ' -c node -a)',
+          (err) => {
+            if (err) return console.log(`exec error: ${err}`);
+            compile();
+          });
       }
     });
 });

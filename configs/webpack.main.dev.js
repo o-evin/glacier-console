@@ -1,6 +1,8 @@
 const path = require('path');
 const webpack = require('webpack');
 
+const nodeExternals = require('webpack-node-externals');
+
 const paths = {
   root: path.resolve(''),
   build: path.resolve('build'),
@@ -10,8 +12,10 @@ const paths = {
 };
 
 module.exports = {
-  target: 'electron',
+  devtool: 'eval',
+  target: 'electron-main',
   context: paths.root,
+  externals: [nodeExternals()],
   entry: [
     './source/main',
   ],
@@ -44,10 +48,10 @@ module.exports = {
       'process.env': {
         ENVIRONMENT: JSON.stringify('development'),
         NODE_ENV: JSON.stringify('development'),
-        PORT: JSON.stringify('8080'),
       },
     }),
     new webpack.NoEmitOnErrorsPlugin(),
+    //new webpack.HotModuleReplacementPlugin(),
     new webpack.NamedModulesPlugin(),
     new webpack.optimize.ModuleConcatenationPlugin(),
   ],

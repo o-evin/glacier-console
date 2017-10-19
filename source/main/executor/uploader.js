@@ -180,6 +180,7 @@ export default class Uploader {
                 }
               });
           } else {
+            //TODO: verify strange behaviour when set expired for active
             debug('EXPIRED', upload.description);
             upload.setError('Expired');
             return this.store.update(upload);
@@ -203,6 +204,8 @@ export default class Uploader {
       .then(() => {
 
         debug('UPLOAD DONE', upload.description);
+
+        //TODO: Make async?
         upload.checksum = TreeHash.from(upload.filePath);
         return this.store.update(upload);
 

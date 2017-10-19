@@ -266,6 +266,8 @@ export default class Receiver {
 
     return this.downloadMultipart(retrieval)
       .then(() => {
+
+        //TODO: Make async?
         const checksum = TreeHash.from(retrieval.filePath);
 
         if(retrieval.checksum !== checksum) {
